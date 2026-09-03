@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scanner de Pronostics Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans">
+
+    <!-- Navbar -->
+    <header class="border-b border-slate-800 bg-slate-950/50 backdrop-blur py-4 px-6 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <i class="fa-solid me-2 fa-chart-line text-emerald-400 text-2xl"></i>
+            <h1 class="text-xl font-bold tracking-wide">FootScan <span class="text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full ml-2">PRO v1.0</span></h1>
+        </div>
+        <div class="text-xs text-slate-400 flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            Fenêtre d'analyse : <strong class="text-slate-200">06:00 - 18:00</strong>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-5xl w-full mx-auto p-6 flex flex-col gap-6">
+
+        <!-- Control Panel -->
+        <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
+            <div>
+                <h2 class="text-lg font-semibold text-white">Analyseur de Matchs Haute Précision</h2>
+                <p class="text-sm text-slate-400 mt-1">Filtre uniquement les événements à fort taux de réussite ($\ge 80\%$) calculés par la Loi de Poisson.</p>
+            </div>
+            <button id="scanBtn" onclick="runScan()" class="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-6 py-3 rounded-lg shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer">
+                <i class="fa-solid fa-radar" id="radarIcon"></i>
+                <span>LANCER LE SCAN</span>
+            </button>
+        </div>
+
+        <!-- Scanning State Indicator -->
+        <div id="loadingState" class="hidden text-center py-12">
+            <div class="inline-block p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-full mb-3">
+                <i class="fa-solid fa-arrows-rotate text-emerald-400 text-3xl animate-spin"></i>
+            </div>
+            <p class="text-slate-300 font-medium">Récupération des matchs et calcul des matrices xG...</p>
+        </div>
+
+        <!-- Results Table -->
+        <div id="resultsContainer" class="hidden flex flex-col gap-4">
+            <div class="flex justify-between items-center text-sm text-slate-400 px-1">
+                <span>Matchs retenus : <strong id="matchCount" class="text-emerald-400">0</strong></span>
+                <span>Seuil de confiance minimal : <strong class="text-slate-200">80%</strong></span>
+            </div>
+
+            <div class="overflow-x-auto bg-slate-800/40 border border-slate-700/50 rounded-xl">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-slate-700/60 bg-slate-900/40 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                            <th class="p-4">Heure</th>
+                            <th class="p-4">Affiche</th>
+                            <th class="p-4 text-center">xG Estimé</th>
+                            <th class="p-4">Prédictions Filtrées ($\ge 80\%$)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="divide-y divide-slate-700/40 text-sm">
+                        <!-- Injection dynamique JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        async function runScan() {
+            const btn = document.getElementById('scanBtn');
+            const loading = document.getElementById('loadingState');
+            const results = document.getElementById('resultsContainer');
+            const tableBody = document.getElementById('tableBody');
+
+            // UI Feedback
+            btn.disabled = true;
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+            loading.classList.remove('hidden');
+            results.classList.add('hidden');
+
+            try {
+                // Simulation d'appel API vers le backend Python
+                const response = await fetch('/api/scan');
+                const res = await response.json();
+
+                tableBody.innerHTML = '';
+                document.getElementById('matchCount').innerText = res.count;
+
+                res.data.forEach(match => {
+                    let predsHtml = match.analysis.predictions.map(p => `
+                        <div class="flex items-center justify-between bg-emerald-950/40 border border-emerald-500/30 rounded px-3 py-1.5 my-1">
+                            <span class="text-emerald-300 font-medium text-xs">${p.type}</span>
+                            <span class="bg-emerald-500 text-slate-950 text-[10px] font-bold px-2 py-0.5 rounded-full">${p.confidence}%</span>
+                        </div>
+                    `).join('');
+
+                    tableBody.innerHTML += `
+                        <tr class="hover:bg-slate-800/30 transition-colors">
+                            <td class="p-4 font-mono text-slate-400 font-semibold">${match.time}</td>
+                            <td class="p-4 font-medium">
+                                <span class="text-slate-100">${match.home}</span>
+                                <span class="text-slate-500 text-xs mx-1">vs</span>
+                                <span class="text-slate-100">${match.away}</span>
+                            </td>
+                            <td class="p-4 text-center font-mono text-xs text-slate-400">
+                                ${match.analysis.home_xg} - ${match.analysis.away_xg}
+                            </td>
+                            <td class="p-4">${predsHtml}</td>
+                        </tr>
+                    `;
+                });
+
+                loading.classList.add('hidden');
+                results.classList.remove('hidden');
+
+            } catch (err) {
+                alert("Erreur lors de la communication avec le moteur d'analyse.");
+                loading.classList.add('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        }
+    </script>
+</body>
+</html>

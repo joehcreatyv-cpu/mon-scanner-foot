@@ -1,5 +1,6 @@
 import math
-from datetime import datetime, timedelta
+import requests
+from datetime import datetime, timezone
 from flask import Flask, jsonify, render_template_string
 
 app = Flask(__name__)
@@ -14,7 +15,7 @@ def home():
 def poisson_probability(lmbda, k):
     return (math.pow(lmbda, k) * math.exp(-lmbda)) / math.factorial(k)
 
-def analyze_match(home_team, away_team, home_att, home_def, away_att, away_def, league_avg_home, league_avg_away):
+def analyze_match(home_team, away_team, home_att, home_def, away_att, away_def, league_avg_home=1.35, league_avg_away=1.10):
     expected_home_goals = home_att * away_def * league_avg_home
     expected_away_goals = away_att * home_def * league_avg_away
 
@@ -51,58 +52,53 @@ def analyze_match(home_team, away_team, home_att, home_def, away_att, away_def, 
         "predictions": predictions
     }
 
-def get_daily_matches():
-    # 1. Obtention de l'instant précis du clic
-    now = datetime.now()
-    eight_hours_later = now + timedelta(hours=8)
-
-    # Simulation de matchs générés dynamiquement POUR AUJOURD'HUI dans la fenêtre des 8h à venir
-    # NOTE : Dans la version finale avec API, ces données proviennent directement du flux API-Football
-    raw_matches = [
-        {
-            "id": 1, 
-            "datetime": (now + timedelta(hours=1)).strftime("%Y-%m-%d %H:%M"), 
-            "home": "Arsenal", "away": "Everton", 
-            "home_att": 1.4, "home_def": 0.6, "away_att": 0.7, "away_def": 1.3
-        },
-        {
-            "id": 2, 
-            "datetime": (now + timedelta(hours=4)).strftime("%Y-%m-%d %H:%M"), 
-            "home": "Real Madrid", "away": "Getafe", 
-            "home_att": 1.6, "home_def": 0.5, "away_att": 0.6, "away_def": 1.2
-        },
-        {
-            "id": 3, 
-            "datetime": (now + timedelta(hours=12)).strftime("%Y-%m-%d %H:%M"), # Hors fenêtre de 8h (sera rejeté)
-            "home": "PSG", "away": "Marseille", 
-            "home_att": 1.5, "home_def": 0.7, "away_att": 1.1, "away_def": 0.9
-        }
-    ]
-
-    filtered_matches = []
-    for match in raw_matches:
-        match_dt = datetime.strptime(match["datetime"], "%Y-%m-%d %H:%M")
-
-        # FILTRAGE STRICT : Le match doit avoir lieu AUJOURD'HUI, ENTRE maintenant et dans 8 heures
-        if now <= match_dt <= eight_hours_later:
-            analysis = analyze_match(
-                match["home"], match["away"],
-                match["home_att"], match["home_def"],
-                match["away_att"], match["away_def"],
-                league_avg_home=1.35, league_avg_away=1.10
-            )
-            
-            if analysis["predictions"]:
-                match["time"] = match_dt.strftime("%H:%M")
-                match["analysis"] = analysis
-                filtered_matches.append(match)
-
-    return filtered_matches
+# --- RÉCUPÉRATION DES MATCHS EN DIRECT VIA FOOTBALL-DATA.ORG ---
+def get_live_matches_from_api():
+    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    url = f"https://api.football-data.org/v4/matches?dateFrom={today_str}&dateTo={today_str}"
+    
+    # Votre clé API personnalisée
+    headers = {'X-Auth-Token': '6a7f0cc1d0594fe48481f70b3dc9cfe7'}
+    
+    try:
+        response = requests.get(url, headers=headers, timeout=8)
+        if response.status_code == 200:
+            data = response.json()
+            matches = data.get('matches', [])
+            parsed = []
+            for m in matches:
+                utc_date = datetime.fromisoformat(m['utcDate'].replace('Z', '+00:00'))
+                parsed.append({
+                    "id": m.get('id'),
+                    "time": utc_date.strftime("%H:%M"),
+                    "datetime_utc": utc_date,
+                    "home": m['homeTeam']['shortName'] or m['homeTeam']['name'],
+                    "away": m['awayTeam']['shortName'] or m['awayTeam']['name'],
+                    "home_att": 1.4, "home_def": 0.7,
+                    "away_att": 0.8, "away_def": 1.2
+                })
+            return parsed
+    except Exception as e:
+        print("Erreur API :", e)
+    return []
 
 @app.route('/api/scan')
 def scan():
-    results = get_daily_matches()
-    return jsonify({"status": "success", "count": len(results), "data": results})
+    raw_matches = get_live_matches_from_api()
+    
+    filtered_matches = []
+    for match in raw_matches:
+        analysis = analyze_match(
+            match["home"], match["away"],
+            match["home_att"], match["home_def"],
+            match["away_att"], match["away_def"]
+        )
+        
+        if analysis["predictions"]:
+            match["analysis"] = analysis
+            filtered_matches.append(match)
+
+    return jsonify({"status": "success", "count": len(filtered_matches), "data": filtered_matches})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)

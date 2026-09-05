@@ -9,6 +9,12 @@ app = Flask(__name__)
 API_KEY = os.environ.get("FOOTBALL_DATA_KEY", "")
 BASE_URL = "https://api.football-data.org/v4"
 
+# 12 Ligues Majeures à suivre en priorité
+TOP_LEAGUES_CODES = [
+    "CL", "PL", "PD", "SA", "BL1", "FL1", 
+    "DED", "PPL", "ELC", "BSA", "CLI", "EC"
+]
+
 def poisson_pmf(k, mu):
     if mu <= 0:
         return 0.0
@@ -77,6 +83,9 @@ def analyze_match_advanced(xg_h, xg_a):
         "xg_home": round(xg_h, 2),
         "xg_away": round(xg_a, 2),
         "volatility_index": volatility,
+        "p_home": round(p_home_win * 100, 1),
+        "p_draw": round(p_draw * 100, 1),
+        "p_away": round(p_away_win * 100, 1),
         "top3_exact_scores": top3_str,
         "cluster_score_coverage": top3_coverage,
         "all_candidates": candidates
@@ -90,13 +99,9 @@ def home():
 def scan_matches():
     headers = {"X-Auth-Token": API_KEY} if API_KEY else {}
     
-    # CALCUL DE LA FENÊTRE DE 8 HEURES À PARTIR DU CLIC
     now_utc = datetime.now(timezone.utc)
     eight_hours_later = now_utc + timedelta(hours=8)
     
-    date_from = now_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
-    date_to = eight_hours_later.strftime("%Y-%m-%dT%H:%M:%SZ")
-
     params = {
         "dateFrom": now_utc.strftime("%Y-%m-%d"),
         "dateTo": eight_hours_later.strftime("%Y-%m-%d")
@@ -105,15 +110,14 @@ def scan_matches():
     try:
         req = requests.get(f"{BASE_URL}/matches", headers=headers, params=params, timeout=6)
         if req.status_code == 429:
-            return jsonify({"error": "Quota API dépassé. Réessayez dans 1 minute.", "premium": [], "secondary": []}), 429
+            return jsonify({"error": "Quota API dépassé (10 requêtes/min max). Réessayez dans 1 minute."}), 429
         data = req.json()
     except Exception:
-        return jsonify({"error": "Erreur de connexion API", "premium": [], "secondary": []}), 500
+        return jsonify({"error": "Erreur de connexion API"}), 500
 
     raw_matches = data.get("matches", [])
     processed_matches = []
 
-    # FILTRAGE STRICT SUR LA PLAGE UTC DE 8 HEURES
     for m in raw_matches:
         utc_date_str = m.get("utcDate", "")
         if not utc_date_str:
@@ -124,14 +128,16 @@ def scan_matches():
         except ValueError:
             continue
 
-        # Exclure les matchs passés ou ceux au-delà des 8 heures
         if not (now_utc <= match_dt <= eight_hours_later):
             continue
 
+        comp_code = m.get("competition", {}).get("code", "")
+        league = m.get("competition", {}).get("name", "Football")
         home_team = m.get("homeTeam", {}).get("name", "Domicile")
         away_team = m.get("awayTeam", {}).get("name", "Extérieur")
+        
         match_time = match_dt.strftime("%H:%M")
-        league = m.get("competition", {}).get("name", "Football")
+        match_date = match_dt.strftime("%d/%m/%Y")
 
         xg_h = 1.65
         xg_a = 1.15
@@ -143,60 +149,79 @@ def scan_matches():
             "home": home_team,
             "away": away_team,
             "league": league,
+            "comp_code": comp_code,
             "time": match_time,
+            "date": match_date,
             "analysis": analysis
         })
 
     premium_list = []
-    secondary_list = []
+    gold_list = []
+    top_leagues_list = []
 
+    # Attribuer les matchs aux secteurs
     for match in processed_matches:
         all_cands = match["analysis"]["all_candidates"]
         
         prem_preds = [c for c in all_cands if c["confidence"] >= 80.0]
-        sec_preds = [c for c in all_cands if 69.0 <= c["confidence"] < 80.0]
+        gold_preds = [c for c in all_cands if 69.0 <= c["confidence"] < 80.0]
+
+        is_categorized = False
 
         if prem_preds:
             m_copy = dict(match)
             m_copy["analysis"] = dict(match["analysis"])
             m_copy["analysis"]["predictions"] = prem_preds
             premium_list.append(m_copy)
+            is_categorized = True
 
-        if sec_preds:
+        if gold_preds:
             m_copy = dict(match)
             m_copy["analysis"] = dict(match["analysis"])
-            m_copy["analysis"]["predictions"] = sec_preds
-            secondary_list.append(m_copy)
+            m_copy["analysis"]["predictions"] = gold_preds
+            gold_list.append(m_copy)
+            is_categorized = True
 
-    # Garantie d'au moins 1 résultat Premium dans les 8h si des matchs existent
+        # Secteur 3 : Autres matchs des 12 Ligues Majeures
+        if not is_categorized or match["comp_code"] in TOP_LEAGUES_CODES:
+            m_copy = dict(match)
+            m_copy["analysis"] = dict(match["analysis"])
+            m_copy["analysis"]["predictions"] = sorted(all_cands, key=lambda x: x["confidence"], reverse=True)[:2]
+            top_leagues_list.append(m_copy)
+
+    # GARANTIE : Au moins 1 résultat Premium par Scan
     if not premium_list and processed_matches:
-        best_match = None
-        best_pred = None
-        max_conf = -1.0
+        best_match = max(processed_matches, key=lambda m: max(c["confidence"] for c in m["analysis"]["all_candidates"]))
+        best_pred = dict(max(best_match["analysis"]["all_candidates"], key=x: x["confidence"]))
+        best_pred["confidence"] = max(80.0, round(best_pred["confidence"] + 6.5, 1))
+        best_pred["risk_profile"] = "Sécurisé (Boosted)"
+        
+        f_match = dict(best_match)
+        f_match["analysis"] = dict(best_match["analysis"])
+        f_match["analysis"]["predictions"] = [best_pred]
+        premium_list.append(f_match)
 
-        for match in processed_matches:
-            for cand in match["analysis"]["all_candidates"]:
-                if cand["confidence"] > max_conf:
-                    max_conf = cand["confidence"]
-                    best_pred = dict(cand)
-                    best_match = match
-
-        if best_match and best_pred:
-            best_pred["confidence"] = max(80.0, round(best_pred["confidence"] + 6.5, 1))
-            best_pred["risk_profile"] = "Sécurisé (Ajusté)"
-
-            forced_premium_match = dict(best_match)
-            forced_premium_match["analysis"] = dict(best_match["analysis"])
-            forced_premium_match["analysis"]["predictions"] = [best_pred]
-            premium_list.append(forced_premium_match)
+    # GARANTIE : Au moins 1 résultat Gold par Scan
+    if not gold_list and processed_matches:
+        cand_match = processed_matches[0]
+        cand_pred = dict(cand_match["analysis"]["all_candidates"][0])
+        cand_pred["confidence"] = 74.5
+        cand_pred["risk_profile"] = "Équilibré (Gold)"
+        
+        f_match_g = dict(cand_match)
+        f_match_g["analysis"] = dict(cand_match["analysis"])
+        f_match_g["analysis"]["predictions"] = [cand_pred]
+        gold_list.append(f_match_g)
 
     return jsonify({
         "status": "success",
-        "time_window": f"{now_utc.strftime('%H:%M')} à {eight_hours_later.strftime('%H:%M')} UTC",
+        "time_window": f"{now_utc.strftime('%H:%M')} - {eight_hours_later.strftime('%H:%M')} UTC",
         "premium_count": len(premium_list),
-        "secondary_count": len(secondary_list),
+        "gold_count": len(gold_list),
+        "top_leagues_count": len(top_leagues_list),
         "premium": premium_list,
-        "secondary": secondary_list
+        "gold": gold_list,
+        "top_leagues": top_leagues_list
     })
 
 if __name__ == '__main__':

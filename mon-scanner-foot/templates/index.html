@@ -26,8 +26,6 @@
             backdrop-filter: blur(16px);
             border: 1px solid rgba(255, 255, 255, 0.08);
         }
-        .glow-gold { box-shadow: 0 0 25px -5px rgba(234, 179, 8, 0.3); }
-        .glow-amber { box-shadow: 0 0 25px -5px rgba(245, 158, 11, 0.3); }
         .glow-button { box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.5); }
     </style>
 </head>
@@ -132,94 +130,99 @@
 
     <script>
         function renderMatchCard(match, sectorType) {
-            let accentColor = 'emerald';
-            if (sectorType === 'premium') accentColor = 'amber';
-            if (sectorType === 'gold') accentColor = 'yellow';
+            var colorClass = "emerald";
+            var textClass = "text-emerald-400";
+            var bgClass = "bg-emerald-500/10";
+            var borderClass = "border-emerald-500/20";
+            var barGrad = "from-emerald-500 to-teal-400";
 
-            let predsHtml = match.analysis.predictions.map(p => `
-                <div class="bg-slate-900/90 border border-slate-800 rounded-lg p-3 space-y-2">
-                    <div class="flex justify-between items-center text-xs">
-                        <span class="text-[10px] uppercase tracking-wider text-slate-400 font-bold">${p.market}</span>
-                        <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">${p.risk_profile}</span>
-                    </div>
-                    <div class="flex justify-between items-center text-sm">
-                        <span class="font-bold text-white">${p.pick}</span>
-                        <span class="font-extrabold text-${accentColor}-400 bg-${accentColor}-500/10 px-2.5 py-1 rounded-md border border-${accentColor}-500/20">${p.confidence}%</span>
-                    </div>
-                    <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                        <div class="h-full bg-gradient-to-r from-${accentColor}-500 to-teal-400 rounded-full" style="width: ${p.confidence}%"></div>
-                    </div>
-                </div>
-            `).join('');
+            if (sectorType === 'premium') {
+                colorClass = "amber";
+                textClass = "text-amber-400";
+                bgClass = "bg-amber-500/10";
+                borderClass = "border-amber-500/20";
+                barGrad = "from-amber-500 to-yellow-400";
+            } else if (sectorType === 'gold') {
+                colorClass = "yellow";
+                textClass = "text-yellow-400";
+                bgClass = "bg-yellow-500/10";
+                borderClass = "border-yellow-500/20";
+                barGrad = "from-yellow-500 to-amber-400";
+            }
 
-            return `
-                <div class="glass-panel rounded-xl p-6 hover:border-${accentColor}-500/40 transition-all duration-300 shadow-xl flex flex-col gap-5">
-                    
-                    <!-- Header Match -->
-                    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
-                        <div class="flex items-center gap-4">
-                            <div class="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-center">
-                                <span class="text-[10px] text-slate-400 font-bold block">${match.date}</span>
-                                <span class="font-mono text-sm font-bold text-white">${match.time} UTC</span>
-                            </div>
-                            <div>
-                                <div class="text-xs text-${accentColor}-400 font-bold uppercase tracking-wider mb-0.5">${match.league}</div>
-                                <div class="text-lg font-bold text-white">${match.home} <span class="text-slate-500 text-sm mx-1">VS</span> ${match.away}</div>
-                            </div>
-                        </div>
+            var predsHtml = "";
+            for (var i = 0; i < match.analysis.predictions.length; i++) {
+                var p = match.analysis.predictions[i];
+                predsHtml += '<div class="bg-slate-900/90 border border-slate-800 rounded-lg p-3 space-y-2">' +
+                    '<div class="flex justify-between items-center text-xs">' +
+                        '<span class="text-[10px] uppercase tracking-wider text-slate-400 font-bold">' + p.market + '</span>' +
+                        '<span class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">' + p.risk_profile + '</span>' +
+                    '</div>' +
+                    '<div class="flex justify-between items-center text-sm">' +
+                        '<span class="font-bold text-white">' + p.pick + '</span>' +
+                        '<span class="font-extrabold ' + textClass + ' ' + bgClass + ' px-2.5 py-1 rounded-md border ' + borderClass + '">' + p.confidence + '%</span>' +
+                    '</div>' +
+                    '<div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">' +
+                        '<div class="h-full bg-gradient-to-r ' + barGrad + ' rounded-full" style="width: ' + p.confidence + '%"></div>' +
+                    '</div>' +
+                '</div>';
+            }
 
-                        <div class="flex items-center gap-3">
-                            <div class="bg-slate-900/80 border border-slate-800 rounded-lg px-3 py-1.5 text-center">
-                                <span class="text-[10px] text-slate-400 font-bold block uppercase">xG Attendu</span>
-                                <span class="font-mono text-xs font-bold text-slate-200">${match.analysis.xg_home} - ${match.analysis.xg_away}</span>
-                            </div>
-                            <div class="bg-slate-900/80 border border-slate-800 rounded-lg px-3 py-1.5 text-center">
-                                <span class="text-[10px] text-slate-400 font-bold block uppercase">Volatilité</span>
-                                <span class="font-mono text-xs font-bold text-teal-400">${match.analysis.volatility_index}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Graphique Démographique / Répartition 1N2 -->
-                    <div class="space-y-1.5 bg-slate-900/50 p-3 rounded-lg border border-slate-800/60">
-                        <div class="flex justify-between text-[11px] font-bold text-slate-400">
-                            <span>Dom (${match.analysis.p_home}%)</span>
-                            <span>Nul (${match.analysis.p_draw}%)</span>
-                            <span>Ext (${match.analysis.p_away}%)</span>
-                        </div>
-                        <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden flex">
-                            <div class="bg-emerald-500 h-full" style="width: ${match.analysis.p_home}%" title="Domicile"></div>
-                            <div class="bg-amber-400 h-full" style="width: ${match.analysis.p_draw}%" title="Nul"></div>
-                            <div class="bg-indigo-500 h-full" style="width: ${match.analysis.p_away}%" title="Extérieur"></div>
-                        </div>
-                    </div>
-
-                    <!-- Prédictions et Clusters -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div class="md:col-span-2 flex flex-col gap-2">
-                            ${predsHtml}
-                        </div>
-
-                        <div class="bg-slate-900/60 border border-slate-800/80 rounded-lg p-4 flex flex-col justify-between space-y-3">
-                            <div>
-                                <span class="text-[10px] uppercase tracking-wider text-slate-400 font-bold block mb-1">Cluster 3 Scores Exacts</span>
-                                <p class="text-xs font-mono font-semibold text-slate-200 leading-relaxed">${match.analysis.top3_exact_scores}</p>
-                            </div>
-                            <div class="pt-2 border-t border-slate-800 flex justify-between items-center text-xs">
-                                <span class="text-slate-400">Couverture Cluster :</span>
-                                <span class="font-bold text-${accentColor}-400">${match.analysis.cluster_score_coverage}%</span>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-            `;
+            return '<div class="glass-panel rounded-xl p-6 shadow-xl flex flex-col gap-5">' +
+                '<div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">' +
+                    '<div class="flex items-center gap-4">' +
+                        '<div class="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-center">' +
+                            '<span class="text-[10px] text-slate-400 font-bold block">' + match.date + '</span>' +
+                            '<span class="font-mono text-sm font-bold text-white">' + match.time + ' UTC</span>' +
+                        '</div>' +
+                        '<div>' +
+                            '<div class="text-xs ' + textClass + ' font-bold uppercase tracking-wider mb-0.5">' + match.league + '</div>' +
+                            '<div class="text-lg font-bold text-white">' + match.home + ' <span class="text-slate-500 text-sm mx-1">VS</span> ' + match.away + '</div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="flex items-center gap-3">' +
+                        '<div class="bg-slate-900/80 border border-slate-800 rounded-lg px-3 py-1.5 text-center">' +
+                            '<span class="text-[10px] text-slate-400 font-bold block uppercase">xG Attendu</span>' +
+                            '<span class="font-mono text-xs font-bold text-slate-200">' + match.analysis.xg_home + ' - ' + match.analysis.xg_away + '</span>' +
+                        '</div>' +
+                        '<div class="bg-slate-900/80 border border-slate-800 rounded-lg px-3 py-1.5 text-center">' +
+                            '<span class="text-[10px] text-slate-400 font-bold block uppercase">Volatilité</span>' +
+                            '<span class="font-mono text-xs font-bold text-teal-400">' + match.analysis.volatility_index + '</span>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="space-y-1.5 bg-slate-900/50 p-3 rounded-lg border border-slate-800/60">' +
+                    '<div class="flex justify-between text-[11px] font-bold text-slate-400">' +
+                        '<span>Dom (' + match.analysis.p_home + '%)</span>' +
+                        '<span>Nul (' + match.analysis.p_draw + '%)</span>' +
+                        '<span>Ext (' + match.analysis.p_away + '%)</span>' +
+                    '</div>' +
+                    '<div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden flex">' +
+                        '<div class="bg-emerald-500 h-full" style="width: ' + match.analysis.p_home + '%"></div>' +
+                        '<div class="bg-amber-400 h-full" style="width: ' + match.analysis.p_draw + '%"></div>' +
+                        '<div class="bg-indigo-500 h-full" style="width: ' + match.analysis.p_away + '%"></div>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="grid grid-cols-1 md:grid-cols-3 gap-4">' +
+                    '<div class="md:col-span-2 flex flex-col gap-2">' + predsHtml + '</div>' +
+                    '<div class="bg-slate-900/60 border border-slate-800/80 rounded-lg p-4 flex flex-col justify-between space-y-3">' +
+                        '<div>' +
+                            '<span class="text-[10px] uppercase tracking-wider text-slate-400 font-bold block mb-1">Cluster 3 Scores Exacts</span>' +
+                            '<p class="text-xs font-mono font-semibold text-slate-200 leading-relaxed">' + match.analysis.top3_exact_scores + '</p>' +
+                        '</div>' +
+                        '<div class="pt-2 border-t border-slate-800 flex justify-between items-center text-xs">' +
+                            '<span class="text-slate-400">Couverture Cluster :</span>' +
+                            '<span class="font-bold ' + textClass + '">' + match.analysis.cluster_score_coverage + '%</span>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
         }
 
         async function runScan() {
-            const btn = document.getElementById('scanBtn');
-            const loading = document.getElementById('loadingState');
-            const results = document.getElementById('resultsContainer');
+            var btn = document.getElementById('scanBtn');
+            var loading = document.getElementById('loadingState');
+            var results = document.getElementById('resultsContainer');
 
             btn.disabled = true;
             loading.classList.remove('hidden');
@@ -227,32 +230,37 @@
             results.classList.add('hidden');
 
             try {
-                const response = await fetch('/api/scan');
-                const res = await response.json();
+                var response = await fetch('/api/scan');
+                var res = await response.json();
 
-                document.getElementById('windowText').innerText = `Fenêtre : ${res.time_window}`;
-                document.getElementById('premBadge').innerText = `${res.premium_count} Match(s)`;
-                document.getElementById('goldBadge').innerText = `${res.gold_count} Match(s)`;
-                document.getElementById('topBadge').innerText = `${res.top_leagues_count} Match(s)`;
+                if (res.error) {
+                    alert("Information: " + res.error);
+                    return;
+                }
 
-                const pCont = document.getElementById('premiumCardsList');
-                const gCont = document.getElementById('goldCardsList');
-                const tCont = document.getElementById('topLeaguesCardsList');
+                document.getElementById('windowText').innerText = 'Fenêtre : ' + res.time_window;
+                document.getElementById('premBadge').innerText = res.premium_count + ' Match(s)';
+                document.getElementById('goldBadge').innerText = res.gold_count + ' Match(s)';
+                document.getElementById('topBadge').innerText = res.top_leagues_count + ' Match(s)';
+
+                var pCont = document.getElementById('premiumCardsList');
+                var gCont = document.getElementById('goldCardsList');
+                var tCont = document.getElementById('topLeaguesCardsList');
 
                 pCont.innerHTML = ''; gCont.innerHTML = ''; tCont.innerHTML = '';
 
-                res.premium.forEach(m => pCont.innerHTML += renderMatchCard(m, 'premium'));
-                res.gold.forEach(m => gCont.innerHTML += renderMatchCard(m, 'gold'));
-                res.top_leagues.forEach(m => tCont.innerHTML += renderMatchCard(m, 'top'));
+                res.premium.forEach(function(m) { pCont.innerHTML += renderMatchCard(m, 'premium'); });
+                res.gold.forEach(function(m) { gCont.innerHTML += renderMatchCard(m, 'gold'); });
+                res.top_leagues.forEach(function(m) { tCont.innerHTML += renderMatchCard(m, 'top'); });
 
                 loading.classList.add('hidden');
                 loading.classList.remove('flex');
                 results.classList.remove('hidden');
 
             } catch (err) {
-                alert("Erreur lors du scan.");
-                loading.classList.add('hidden');
+                alert("Erreur lors de la récupération des matchs.");
             } finally {
+                loading.classList.add('hidden');
                 btn.disabled = false;
             }
         }

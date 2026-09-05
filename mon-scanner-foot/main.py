@@ -1,15 +1,14 @@
 import os
 import math
 import requests
+from datetime import datetime, timedelta, timezone
 from flask import Flask, render_template, jsonify
 
 app = Flask(__name__)
 
-# --- CONFIGURATION API ---
-API_KEY = os.environ.get("FOOTBALL_DATA_KEY", "")  # Insérer votre clé si locale
+API_KEY = os.environ.get("FOOTBALL_DATA_KEY", "")
 BASE_URL = "https://api.football-data.org/v4"
 
-# --- MOTEUR DIXON-COLES & POISSON ---
 def poisson_pmf(k, mu):
     if mu <= 0:
         return 0.0
@@ -42,8 +41,7 @@ def calculate_volatility(xg_h, xg_a):
     var_h = xg_h
     var_a = xg_a
     total_var = math.sqrt(var_h + var_a)
-    volatility = round(min(10.0, total_var * 2.8), 2)
-    return volatility
+    return round(min(10.0, total_var * 2.8), 2)
 
 def analyze_match_advanced(xg_h, xg_a):
     matrix = build_score_matrix(xg_h, xg_a)
@@ -84,7 +82,6 @@ def analyze_match_advanced(xg_h, xg_a):
         "all_candidates": candidates
     }
 
-# --- ROUTES FLASK ---
 @app.route('/')
 def home():
     return render_template('index.html')
@@ -93,26 +90,49 @@ def home():
 def scan_matches():
     headers = {"X-Auth-Token": API_KEY} if API_KEY else {}
     
+    # CALCUL DE LA FENÊTRE DE 8 HEURES À PARTIR DU CLIC
+    now_utc = datetime.now(timezone.utc)
+    eight_hours_later = now_utc + timedelta(hours=8)
+    
+    date_from = now_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
+    date_to = eight_hours_later.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    params = {
+        "dateFrom": now_utc.strftime("%Y-%m-%d"),
+        "dateTo": eight_hours_later.strftime("%Y-%m-%d")
+    }
+
     try:
-        req = requests.get(f"{BASE_URL}/matches", headers=headers, timeout=6)
+        req = requests.get(f"{BASE_URL}/matches", headers=headers, params=params, timeout=6)
         if req.status_code == 429:
-            return jsonify({"error": "Quota API dépassé (10 requêtes/min max). Réessayez dans 1 minute.", "premium": [], "secondary": []}), 429
+            return jsonify({"error": "Quota API dépassé. Réessayez dans 1 minute.", "premium": [], "secondary": []}), 429
         data = req.json()
-    except Exception as e:
+    except Exception:
         return jsonify({"error": "Erreur de connexion API", "premium": [], "secondary": []}), 500
 
-    matches = data.get("matches", [])
-    
+    raw_matches = data.get("matches", [])
     processed_matches = []
 
-    for m in matches:
+    # FILTRAGE STRICT SUR LA PLAGE UTC DE 8 HEURES
+    for m in raw_matches:
+        utc_date_str = m.get("utcDate", "")
+        if not utc_date_str:
+            continue
+        
+        try:
+            match_dt = datetime.fromisoformat(utc_date_str.replace("Z", "+00:00"))
+        except ValueError:
+            continue
+
+        # Exclure les matchs passés ou ceux au-delà des 8 heures
+        if not (now_utc <= match_dt <= eight_hours_later):
+            continue
+
         home_team = m.get("homeTeam", {}).get("name", "Domicile")
         away_team = m.get("awayTeam", {}).get("name", "Extérieur")
-        utc_date = m.get("utcDate", "")
-        match_time = utc_date[11:16] if len(utc_date) >= 16 else "00:00"
+        match_time = match_dt.strftime("%H:%M")
         league = m.get("competition", {}).get("name", "Football")
 
-        # Estimation xG basée sur l'historique ou défaut
         xg_h = 1.65
         xg_a = 1.15
         
@@ -130,7 +150,6 @@ def scan_matches():
     premium_list = []
     secondary_list = []
 
-    # 1. Tri et distribution dans Premium (>= 80%) et Secondaire (69% - 79%)
     for match in processed_matches:
         all_cands = match["analysis"]["all_candidates"]
         
@@ -149,7 +168,7 @@ def scan_matches():
             m_copy["analysis"]["predictions"] = sec_preds
             secondary_list.append(m_copy)
 
-    # 2. Garantie d'au moins 1 résultat Premium par scan/jour
+    # Garantie d'au moins 1 résultat Premium dans les 8h si des matchs existent
     if not premium_list and processed_matches:
         best_match = None
         best_pred = None
@@ -163,7 +182,6 @@ def scan_matches():
                     best_match = match
 
         if best_match and best_pred:
-            # Boost calculé pour garantir 80%+ tout en restant scientifiquement réaliste
             best_pred["confidence"] = max(80.0, round(best_pred["confidence"] + 6.5, 1))
             best_pred["risk_profile"] = "Sécurisé (Ajusté)"
 
@@ -174,6 +192,7 @@ def scan_matches():
 
     return jsonify({
         "status": "success",
+        "time_window": f"{now_utc.strftime('%H:%M')} à {eight_hours_later.strftime('%H:%M')} UTC",
         "premium_count": len(premium_list),
         "secondary_count": len(secondary_list),
         "premium": premium_list,

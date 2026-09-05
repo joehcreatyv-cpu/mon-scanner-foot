@@ -1,269 +1,187 @@
 <!DOCTYPE html>
-<html lang="fr" class="dark">
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FootScan AI Pro | Live Analytics</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] },
-                    animation: { 'radar-sweep': 'sweep 2s linear infinite' },
-                    keyframes: { sweep: { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } } }
-                }
-            }
-        }
-    </script>
+    <title>FootScan AI - Minimal</title>
     <style>
-        .glass-panel {
-            background: rgba(15, 23, 42, 0.75);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+        :root {
+            --bg: #0d1117;
+            --card-bg: #161b22;
+            --border: #30363d;
+            --text: #c9d1d9;
+            --accent: #238636;
+            --gold: #d29922;
+            --blue: #58a6ff;
         }
-        .glow-button { box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.5); }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 15px;
+            font-size: 13px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        .btn-scan {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .btn-scan:hover { opacity: 0.9; }
+        .sector-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin: 15px 0 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .match-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 10px;
+        }
+        .match-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 10px;
+        }
+        .match-header {
+            display: flex;
+            justify-content: space-between;
+            color: #8b949e;
+            font-size: 11px;
+            margin-bottom: 5px;
+        }
+        .teams {
+            font-weight: bold;
+            font-size: 14px;
+            color: #f0f6fc;
+            margin-bottom: 8px;
+        }
+        .odds-bar {
+            display: flex;
+            height: 6px;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 8px;
+            background: #21262d;
+        }
+        .prob-h { background: #238636; }
+        .prob-d { background: #d29922; }
+        .prob-a { background: #8957e5; }
+        .pick-box {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #21262d;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .conf-badge {
+            background: #1f6beb;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+        .empty-msg {
+            color: #8b949e;
+            font-style: italic;
+            padding: 8px 0;
+        }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans selection:bg-emerald-500 selection:text-slate-950">
+<body>
 
-    <!-- Header -->
-    <header class="relative z-10 border-b border-slate-800/80 glass-panel sticky top-0">
-        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-400 via-emerald-400 to-teal-400 flex items-center justify-center text-slate-950 font-black shadow-lg">
-                    <i class="fa-solid fa-chart-pie text-lg"></i>
-                </div>
-                <div>
-                    <h1 class="text-xl font-extrabold tracking-tight text-white flex items-center gap-2">
-                        FootScan <span class="text-amber-400">AI</span>
-                        <span class="text-[10px] uppercase font-bold tracking-widest bg-amber-500/10 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full">3 Secteurs</span>
-                    </h1>
-                </div>
+<div class="header">
+    <div style="font-weight:bold; font-size:16px;">⚽ FootScan AI</div>
+    <div id="time-window" style="color:#8b949e; font-size:12px;">--:-- UTC</div>
+    <button class="btn-scan" onclick="fetchScan()">LANCER LE SCAN</button>
+</div>
+
+<div class="sector-title" style="color: var(--accent);">👑 Secteur Premium (≥ 80%) <span id="count-premium"></span></div>
+<div class="match-grid" id="grid-premium"></div>
+
+<div class="sector-title" style="color: var(--gold);">⭐ Secteur Gold (69% - 79%) <span id="count-gold"></span></div>
+<div class="match-grid" id="grid-gold"></div>
+
+<div class="sector-title" style="color: var(--blue);">⚽ Autres Rencontres <span id="count-top"></span></div>
+<div class="match-grid" id="grid-top"></div>
+
+<script>
+async function fetchScan() {
+    const btn = document.querySelector('.btn-scan');
+    btn.innerText = "Analyse...";
+    btn.disabled = true;
+
+    try {
+        const res = await fetch('/api/scan');
+        const data = await res.json();
+
+        document.getElementById('time-window').innerText = "Fenêtre : " + data.time_window;
+        
+        renderSector('grid-premium', 'count-premium', data.premium);
+        renderSector('grid-gold', 'count-gold', data.gold);
+        renderSector('grid-top', 'count-top', data.top_leagues);
+
+    } catch (e) {
+        alert("Erreur lors de la récupération des données.");
+    } finally {
+        btn.innerText = "LANCER LE SCAN";
+        btn.disabled = false;
+    }
+}
+
+function renderSector(gridId, countId, matches) {
+    const grid = document.getElementById(gridId);
+    const count = document.getElementById(countId);
+    count.innerText = `(${matches.length})`;
+    grid.innerHTML = "";
+
+    if (matches.length === 0) {
+        grid.innerHTML = `<div class="empty-msg">Aucun match trouvé dans ce secteur.</div>`;
+        return;
+    }
+
+    matches.forEach(m => {
+        const pick = m.selected_pick;
+        const card = document.createElement('div');
+        card.className = 'match-card';
+        card.innerHTML = `
+            <div class="match-header">
+                <span>${m.league}</span>
+                <span>${m.date} ${m.time} UTC</span>
             </div>
-            
-            <div class="flex items-center gap-4 text-xs font-medium text-slate-400">
-                <div class="bg-slate-900/80 px-3 py-1.5 rounded-lg border border-slate-800 text-slate-300">
-                    <i class="fa-regular fa-clock text-amber-400 mr-1.5"></i>
-                    <span id="windowText">Fenêtre 8h Live</span>
-                </div>
+            <div class="teams">${m.home} vs ${m.away}</div>
+            <div class="odds-bar">
+                <div class="prob-h" style="width: ${m.analysis.p_home}%" title="Dom: ${m.analysis.p_home}%"></div>
+                <div class="prob-d" style="width: ${m.analysis.p_draw}%" title="Nul: ${m.analysis.p_draw}%"></div>
+                <div class="prob-a" style="width: ${m.analysis.p_away}%" title="Ext: ${m.analysis.p_away}%"></div>
             </div>
-        </div>
-    </header>
-
-    <!-- Main -->
-    <main class="relative z-10 flex-1 max-w-6xl w-full mx-auto px-4 py-8 flex flex-col gap-8">
-
-        <!-- Banner -->
-        <div class="glass-panel rounded-2xl p-6 md:p-8 relative overflow-hidden shadow-2xl">
-            <div class="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
-                <div class="space-y-2 text-center md:text-left">
-                    <h2 class="text-2xl md:text-3xl font-extrabold text-white tracking-tight">Scanner Analytique Pro (8 Heures)</h2>
-                    <p class="text-sm text-slate-400 max-w-xl">
-                        Analyse en temps réel de tous les matchs disponibles sur les 8 prochaines heures avec démographie statistique et classification par secteurs.
-                    </p>
-                </div>
-
-                <button id="scanBtn" onclick="runScan()" class="glow-button w-full md:w-auto bg-gradient-to-r from-amber-400 via-emerald-400 to-teal-400 text-slate-950 font-extrabold px-8 py-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-3 cursor-pointer transform hover:-translate-y-0.5">
-                    <i class="fa-solid fa-radar text-lg" id="radarIcon"></i>
-                    <span class="tracking-wide uppercase">LANCER LE SCAN 8H</span>
-                </button>
+            <div class="pick-box">
+                <span>🎯 ${pick.pick}</span>
+                <span class="conf-badge">${pick.confidence}%</span>
             </div>
-        </div>
+        `;
+        grid.appendChild(card);
+    });
+}
+</script>
 
-        <!-- Radar Loading -->
-        <div id="loadingState" class="hidden flex-col items-center justify-center py-16 gap-6 glass-panel rounded-2xl">
-            <div class="relative w-28 h-28 flex items-center justify-center">
-                <div class="absolute inset-0 border-2 border-emerald-500/20 rounded-full"></div>
-                <div class="absolute inset-0 rounded-full animate-radar-sweep border-t-2 border-emerald-400"></div>
-                <div class="w-3 h-3 bg-emerald-400 rounded-full shadow-lg shadow-emerald-400/80 animate-ping"></div>
-            </div>
-            <p class="text-lg font-bold text-white tracking-wide">Analyse des cotes et construction des graphiques...</p>
-        </div>
-
-        <!-- Results Container -->
-        <div id="resultsContainer" class="hidden flex-col gap-10">
-            
-            <!-- SECTEUR 1 : PREMIUM (80%+) -->
-            <div class="flex flex-col gap-4">
-                <div class="flex items-center justify-between px-2 border-b border-amber-500/30 pb-3">
-                    <div class="flex items-center gap-2">
-                        <i class="fa-solid fa-crown text-amber-400 text-xl"></i>
-                        <h3 class="text-xl font-extrabold text-white tracking-wide">Secteur Premium <span class="text-amber-400 text-sm font-bold">(≥ 80%)</span></h3>
-                    </div>
-                    <span class="bg-amber-500/10 text-amber-400 border border-amber-500/30 px-3 py-1 rounded-full text-xs font-bold" id="premBadge">0 Match</span>
-                </div>
-                <div id="premiumCardsList" class="flex flex-col gap-5"></div>
-            </div>
-
-            <!-- SECTEUR 2 : GOLD (69% - 79%) -->
-            <div class="flex flex-col gap-4">
-                <div class="flex items-center justify-between px-2 border-b border-yellow-500/30 pb-3">
-                    <div class="flex items-center gap-2">
-                        <i class="fa-solid fa-award text-yellow-400 text-xl"></i>
-                        <h3 class="text-xl font-extrabold text-white tracking-wide">Secteur Gold <span class="text-yellow-400 text-sm font-bold">(69% à 79%)</span></h3>
-                    </div>
-                    <span class="bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 px-3 py-1 rounded-full text-xs font-bold" id="goldBadge">0 Match</span>
-                </div>
-                <div id="goldCardsList" class="flex flex-col gap-5"></div>
-            </div>
-
-            <!-- SECTEUR 3 : TOP 12 LIGUES MAJEURES -->
-            <div class="flex flex-col gap-4 pt-4 border-t border-slate-800">
-                <div class="flex items-center justify-between px-2 border-b border-teal-500/30 pb-3">
-                    <div class="flex items-center gap-2">
-                        <i class="fa-solid fa-trophy text-teal-400 text-xl"></i>
-                        <h3 class="text-xl font-extrabold text-white tracking-wide">12 Ligues Majeures & Autres Rencontres</h3>
-                    </div>
-                    <span class="bg-teal-500/10 text-teal-400 border border-teal-500/30 px-3 py-1 rounded-full text-xs font-bold" id="topBadge">0 Match</span>
-                </div>
-                <div id="topLeaguesCardsList" class="flex flex-col gap-5"></div>
-            </div>
-
-        </div>
-
-    </main>
-
-    <script>
-        function renderMatchCard(match, sectorType) {
-            var colorClass = "emerald";
-            var textClass = "text-emerald-400";
-            var bgClass = "bg-emerald-500/10";
-            var borderClass = "border-emerald-500/20";
-            var barGrad = "from-emerald-500 to-teal-400";
-
-            if (sectorType === 'premium') {
-                colorClass = "amber";
-                textClass = "text-amber-400";
-                bgClass = "bg-amber-500/10";
-                borderClass = "border-amber-500/20";
-                barGrad = "from-amber-500 to-yellow-400";
-            } else if (sectorType === 'gold') {
-                colorClass = "yellow";
-                textClass = "text-yellow-400";
-                bgClass = "bg-yellow-500/10";
-                borderClass = "border-yellow-500/20";
-                barGrad = "from-yellow-500 to-amber-400";
-            }
-
-            var predsHtml = "";
-            for (var i = 0; i < match.analysis.predictions.length; i++) {
-                var p = match.analysis.predictions[i];
-                predsHtml += '<div class="bg-slate-900/90 border border-slate-800 rounded-lg p-3 space-y-2">' +
-                    '<div class="flex justify-between items-center text-xs">' +
-                        '<span class="text-[10px] uppercase tracking-wider text-slate-400 font-bold">' + p.market + '</span>' +
-                        '<span class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">' + p.risk_profile + '</span>' +
-                    '</div>' +
-                    '<div class="flex justify-between items-center text-sm">' +
-                        '<span class="font-bold text-white">' + p.pick + '</span>' +
-                        '<span class="font-extrabold ' + textClass + ' ' + bgClass + ' px-2.5 py-1 rounded-md border ' + borderClass + '">' + p.confidence + '%</span>' +
-                    '</div>' +
-                    '<div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">' +
-                        '<div class="h-full bg-gradient-to-r ' + barGrad + ' rounded-full" style="width: ' + p.confidence + '%"></div>' +
-                    '</div>' +
-                '</div>';
-            }
-
-            return '<div class="glass-panel rounded-xl p-6 shadow-xl flex flex-col gap-5">' +
-                '<div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">' +
-                    '<div class="flex items-center gap-4">' +
-                        '<div class="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-center">' +
-                            '<span class="text-[10px] text-slate-400 font-bold block">' + match.date + '</span>' +
-                            '<span class="font-mono text-sm font-bold text-white">' + match.time + ' UTC</span>' +
-                        '</div>' +
-                        '<div>' +
-                            '<div class="text-xs ' + textClass + ' font-bold uppercase tracking-wider mb-0.5">' + match.league + '</div>' +
-                            '<div class="text-lg font-bold text-white">' + match.home + ' <span class="text-slate-500 text-sm mx-1">VS</span> ' + match.away + '</div>' +
-                        '</div>' +
-                    '</div>' +
-                    '<div class="flex items-center gap-3">' +
-                        '<div class="bg-slate-900/80 border border-slate-800 rounded-lg px-3 py-1.5 text-center">' +
-                            '<span class="text-[10px] text-slate-400 font-bold block uppercase">xG Attendu</span>' +
-                            '<span class="font-mono text-xs font-bold text-slate-200">' + match.analysis.xg_home + ' - ' + match.analysis.xg_away + '</span>' +
-                        '</div>' +
-                        '<div class="bg-slate-900/80 border border-slate-800 rounded-lg px-3 py-1.5 text-center">' +
-                            '<span class="text-[10px] text-slate-400 font-bold block uppercase">Volatilité</span>' +
-                            '<span class="font-mono text-xs font-bold text-teal-400">' + match.analysis.volatility_index + '</span>' +
-                        '</div>' +
-                    '</div>' +
-                '</div>' +
-                '<div class="space-y-1.5 bg-slate-900/50 p-3 rounded-lg border border-slate-800/60">' +
-                    '<div class="flex justify-between text-[11px] font-bold text-slate-400">' +
-                        '<span>Dom (' + match.analysis.p_home + '%)</span>' +
-                        '<span>Nul (' + match.analysis.p_draw + '%)</span>' +
-                        '<span>Ext (' + match.analysis.p_away + '%)</span>' +
-                    '</div>' +
-                    '<div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden flex">' +
-                        '<div class="bg-emerald-500 h-full" style="width: ' + match.analysis.p_home + '%"></div>' +
-                        '<div class="bg-amber-400 h-full" style="width: ' + match.analysis.p_draw + '%"></div>' +
-                        '<div class="bg-indigo-500 h-full" style="width: ' + match.analysis.p_away + '%"></div>' +
-                    '</div>' +
-                '</div>' +
-                '<div class="grid grid-cols-1 md:grid-cols-3 gap-4">' +
-                    '<div class="md:col-span-2 flex flex-col gap-2">' + predsHtml + '</div>' +
-                    '<div class="bg-slate-900/60 border border-slate-800/80 rounded-lg p-4 flex flex-col justify-between space-y-3">' +
-                        '<div>' +
-                            '<span class="text-[10px] uppercase tracking-wider text-slate-400 font-bold block mb-1">Cluster 3 Scores Exacts</span>' +
-                            '<p class="text-xs font-mono font-semibold text-slate-200 leading-relaxed">' + match.analysis.top3_exact_scores + '</p>' +
-                        '</div>' +
-                        '<div class="pt-2 border-t border-slate-800 flex justify-between items-center text-xs">' +
-                            '<span class="text-slate-400">Couverture Cluster :</span>' +
-                            '<span class="font-bold ' + textClass + '">' + match.analysis.cluster_score_coverage + '%</span>' +
-                        '</div>' +
-                    '</div>' +
-                '</div>' +
-            '</div>';
-        }
-
-        async function runScan() {
-            var btn = document.getElementById('scanBtn');
-            var loading = document.getElementById('loadingState');
-            var results = document.getElementById('resultsContainer');
-
-            btn.disabled = true;
-            loading.classList.remove('hidden');
-            loading.classList.add('flex');
-            results.classList.add('hidden');
-
-            try {
-                var response = await fetch('/api/scan');
-                var res = await response.json();
-
-                if (res.error) {
-                    alert("Information: " + res.error);
-                    return;
-                }
-
-                document.getElementById('windowText').innerText = 'Fenêtre : ' + res.time_window;
-                document.getElementById('premBadge').innerText = res.premium_count + ' Match(s)';
-                document.getElementById('goldBadge').innerText = res.gold_count + ' Match(s)';
-                document.getElementById('topBadge').innerText = res.top_leagues_count + ' Match(s)';
-
-                var pCont = document.getElementById('premiumCardsList');
-                var gCont = document.getElementById('goldCardsList');
-                var tCont = document.getElementById('topLeaguesCardsList');
-
-                pCont.innerHTML = ''; gCont.innerHTML = ''; tCont.innerHTML = '';
-
-                res.premium.forEach(function(m) { pCont.innerHTML += renderMatchCard(m, 'premium'); });
-                res.gold.forEach(function(m) { gCont.innerHTML += renderMatchCard(m, 'gold'); });
-                res.top_leagues.forEach(function(m) { tCont.innerHTML += renderMatchCard(m, 'top'); });
-
-                loading.classList.add('hidden');
-                loading.classList.remove('flex');
-                results.classList.remove('hidden');
-
-            } catch (err) {
-                alert("Erreur lors de la récupération des matchs.");
-            } finally {
-                loading.classList.add('hidden');
-                btn.disabled = false;
-            }
-        }
-    </script>
 </body>
 </html>

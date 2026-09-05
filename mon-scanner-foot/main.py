@@ -6,7 +6,7 @@ from flask import Flask, render_template, jsonify
 
 app = Flask(__name__)
 
-API_KEY = os.environ.get("FOOTBALL_DATA_KEY", "")
+API_KEY = "6a7f0cc1d0594fe48481f70b3dc9cfe7"
 BASE_URL = "https://api.football-data.org/v4"
 
 def poisson_pmf(k, mu):

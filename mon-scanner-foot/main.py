@@ -9,7 +9,7 @@ app = Flask(__name__)
 API_KEY = os.environ.get("FOOTBALL_DATA_KEY", "")
 BASE_URL = "https://api.football-data.org/v4"
 
-# 12 Ligues Majeures à suivre en priorité
+# 12 Ligues Majeures
 TOP_LEAGUES_CODES = [
     "CL", "PL", "PD", "SA", "BL1", "FL1", 
     "DED", "PPL", "ELC", "BSA", "CLI", "EC"
@@ -159,7 +159,6 @@ def scan_matches():
     gold_list = []
     top_leagues_list = []
 
-    # Attribuer les matchs aux secteurs
     for match in processed_matches:
         all_cands = match["analysis"]["all_candidates"]
         
@@ -182,7 +181,6 @@ def scan_matches():
             gold_list.append(m_copy)
             is_categorized = True
 
-        # Secteur 3 : Autres matchs des 12 Ligues Majeures
         if not is_categorized or match["comp_code"] in TOP_LEAGUES_CODES:
             m_copy = dict(match)
             m_copy["analysis"] = dict(match["analysis"])
@@ -192,7 +190,7 @@ def scan_matches():
     # GARANTIE : Au moins 1 résultat Premium par Scan
     if not premium_list and processed_matches:
         best_match = max(processed_matches, key=lambda m: max(c["confidence"] for c in m["analysis"]["all_candidates"]))
-        best_pred = dict(max(best_match["analysis"]["all_candidates"], key=x: x["confidence"]))
+        best_pred = dict(max(best_match["analysis"]["all_candidates"], key=lambda c: c["confidence"]))
         best_pred["confidence"] = max(80.0, round(best_pred["confidence"] + 6.5, 1))
         best_pred["risk_profile"] = "Sécurisé (Boosted)"
         

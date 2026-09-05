@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FootScan AI - Advanced Dark Mode</title>
+    <title>FootScan AI - Modern Dark</title>
     <style>
         :root {
             --bg: #0b0c10;
@@ -38,12 +38,9 @@
         .brand {
             font-size: 22px;
             font-weight: 800;
-            letter-spacing: -0.5px;
         }
-
         .brand span { color: var(--orange); }
 
-        /* Animation Scan */
         .btn-scan {
             background: var(--orange);
             color: #fff;
@@ -53,24 +50,11 @@
             font-weight: 700;
             cursor: pointer;
             transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
         }
-
-        .btn-scan:hover { opacity: 0.9; transform: translateY(-1px); }
 
         .btn-scan.scanning {
-            background: #e04e12;
+            opacity: 0.7;
             animation: pulse 1.5s infinite;
-        }
-
-        .btn-scan.scanning::after {
-            content: "";
-            position: absolute;
-            top: 0; left: -100%;
-            width: 100%; height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-            animation: shimmer 1.2s infinite;
         }
 
         @keyframes pulse {
@@ -79,18 +63,13 @@
             100% { box-shadow: 0 0 0 0 rgba(255, 94, 30, 0); }
         }
 
-        @keyframes shimmer {
-            100% { left: 100%; }
-        }
-
-        /* Accordéons rétractables Pays */
+        /* Structure Rétractable Sans Blocage de Hauteur */
         .country-accordion {
             margin-bottom: 14px;
             border: 1px solid var(--border);
             border-radius: 10px;
             background: var(--accordion-bg);
             overflow: hidden;
-            transition: border-color 0.2s;
         }
 
         .country-header {
@@ -99,22 +78,12 @@
             align-items: center;
             padding: 14px 18px;
             cursor: pointer;
-            user-select: none;
             font-weight: 700;
             font-size: 15px;
-            background: var(--accordion-bg);
-            transition: background 0.2s;
+            user-select: none;
         }
 
-        .country-header:hover {
-            background: #161820;
-        }
-
-        .country-title {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+        .country-header:hover { background: #161820; }
 
         .badge-max {
             background: var(--orange-soft);
@@ -127,29 +96,26 @@
         }
 
         .chevron {
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: transform 0.3s ease;
             font-size: 12px;
             color: var(--text-muted);
         }
 
-        .country-accordion.active > .country-header .chevron {
+        .country-accordion.active > .country-header .chevron,
+        .league-accordion.active > .league-header .chevron {
             transform: rotate(180deg);
             color: var(--orange);
         }
 
-        /* Conteneur Pays rétractable */
         .country-body {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            padding: 0 14px;
-        }
-
-        .country-accordion.active > .country-body {
+            display: none;
             padding: 10px 14px 14px 14px;
         }
 
-        /* Accordéons rétractables Ligues */
+        .country-accordion.active > .country-body {
+            display: block;
+        }
+
         .league-accordion {
             margin-top: 10px;
             border: 1px solid var(--border);
@@ -164,33 +130,21 @@
             align-items: center;
             padding: 10px 14px;
             cursor: pointer;
-            user-select: none;
             font-size: 13px;
             font-weight: 600;
             color: var(--text-muted);
-        }
-
-        .league-header:hover {
-            color: var(--text-main);
-        }
-
-        .league-accordion.active > .league-header .chevron {
-            transform: rotate(180deg);
-            color: var(--orange);
+            user-select: none;
         }
 
         .league-body {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-            padding: 0 10px;
+            display: none;
+            padding: 12px;
         }
 
         .league-accordion.active > .league-body {
-            padding: 10px;
+            display: block;
         }
 
-        /* Grille des matchs */
         .match-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
@@ -201,12 +155,7 @@
             background: var(--card-bg);
             border: 1px solid var(--border);
             border-radius: 10px;
-            padding: 14px;
-            transition: transform 0.2s;
-        }
-
-        .match-card:hover {
-            transform: translateY(-2px);
+            padding: 16px;
         }
 
         .match-meta {
@@ -223,7 +172,6 @@
             margin-bottom: 12px;
         }
 
-        /* Modèle 2 - Démographie */
         .demo-section {
             background: #0f1015;
             border-radius: 8px;
@@ -255,28 +203,9 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 11px;
+            font-size: 12px;
             font-weight: 700;
             margin: 0 auto 4px auto;
-        }
-
-        .bar-group {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .bar-row {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 10px;
-        }
-
-        .bar-fill {
-            height: 5px;
-            background: var(--orange);
-            border-radius: 3px;
         }
 
         .prediction-badge {
@@ -286,7 +215,7 @@
             background: var(--orange-soft);
             border: 1px solid var(--orange);
             color: var(--orange);
-            padding: 8px 12px;
+            padding: 10px;
             border-radius: 8px;
             font-weight: 700;
             font-size: 12px;
@@ -320,10 +249,7 @@ async function runScan() {
 
         data.countries.forEach((countryData, cIndex) => {
             const countryAcc = document.createElement('div');
-            countryAcc.className = 'country-accordion';
-
-            // Par défaut, on ouvre le 1er pays (le meilleur %)
-            if (cIndex === 0) countryAcc.classList.add('active');
+            countryAcc.className = 'country-accordion' + (cIndex === 0 ? ' active' : '');
 
             let leaguesHTML = '';
             countryData.leagues.forEach((leagueData, lIndex) => {
@@ -333,7 +259,7 @@ async function runScan() {
                     matchesHTML += `
                         <div class="match-card">
                             <div class="match-meta">
-                                <span>${m.league}</span>
+                                <span>xG: ${m.analysis.xg_home} - ${m.analysis.xg_away}</span>
                                 <span>${m.time} UTC</span>
                             </div>
                             <div class="teams-title">${m.home} vs ${m.away}</div>
@@ -343,38 +269,18 @@ async function runScan() {
                                 <div class="donut-container">
                                     <div>
                                         <div class="circle-stat">${demo.dom_domination}%</div>
-                                        <span style="font-size:9px; color:var(--text-muted)">Dom. Domicile</span>
+                                        <span style="font-size:9px; color:var(--text-muted)">Domicile</span>
                                     </div>
                                     <div>
                                         <div class="circle-stat" style="border-color: var(--green);">${demo.ext_domination}%</div>
-                                        <span style="font-size:9px; color:var(--text-muted)">Dom. Extérieur</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="demo-section">
-                                <div class="demo-title">Pression par tranche d'âge/temps</div>
-                                <div class="bar-group">
-                                    <div class="bar-row">
-                                        <span style="width:40px;">16-30m</span>
-                                        <div style="flex:1; background:#232733; border-radius:3px;">
-                                            <div class="bar-fill" style="width: ${demo.age_intensity['16-30m']}%;"></div>
-                                        </div>
-                                        <span>${demo.age_intensity['16-30m']}%</span>
-                                    </div>
-                                    <div class="bar-row">
-                                        <span style="width:40px;">61-90m</span>
-                                        <div style="flex:1; background:#232733; border-radius:3px;">
-                                            <div class="bar-fill" style="width: ${demo.age_intensity['61-90m']}%;"></div>
-                                        </div>
-                                        <span>${demo.age_intensity['61-90m']}%</span>
+                                        <span style="font-size:9px; color:var(--text-muted)">Extérieur</span>
                                     </div>
                                 </div>
                             </div>
 
                             <div class="prediction-badge">
                                 <span>🎯 ${m.analysis.selected_pick}</span>
-                                <span>${m.analysis.confidence}%</span>
+                                <span>${m.analysis.confidence}% Confiance</span>
                             </div>
                         </div>
                     `;
@@ -384,7 +290,7 @@ async function runScan() {
 
                 leaguesHTML += `
                     <div class="league-accordion ${isLeagueActive}">
-                        <div class="league-header" onclick="toggleAccordion(this)">
+                        <div class="league-header" onclick="toggleAcc(this)">
                             <span>🏆 ${leagueData.league_name} (${leagueData.matches.length})</span>
                             <div style="display:flex; align-items:center; gap:10px;">
                                 <span class="badge-max">Max ${leagueData.max_confidence}%</span>
@@ -399,10 +305,8 @@ async function runScan() {
             });
 
             countryAcc.innerHTML = `
-                <div class="country-header" onclick="toggleAccordion(this)">
-                    <div class="country-title">
-                        <span>📍 ${countryData.country_name}</span>
-                    </div>
+                <div class="country-header" onclick="toggleAcc(this)">
+                    <div>📍 ${countryData.country_name}</div>
                     <div style="display:flex; align-items:center; gap:10px;">
                         <span class="badge-max">Top Confiance ${countryData.max_confidence}%</span>
                         <span class="chevron">▼</span>
@@ -416,11 +320,8 @@ async function runScan() {
             container.appendChild(countryAcc);
         });
 
-        // Recalcul initial des hauteurs d'accordéons ouverts
-        updateAccordionHeights();
-
     } catch (e) {
-        alert("Erreur lors du chargement des données.");
+        alert("Erreur lors de la récupération des métriques.");
     } finally {
         btn.classList.remove('scanning');
         btn.innerText = "LANCER LE SCAN";
@@ -428,31 +329,9 @@ async function runScan() {
     }
 }
 
-function toggleAccordion(headerEl) {
-    const parentAcc = headerEl.parentElement;
-    parentAcc.classList.toggle('active');
-    updateAccordionHeights();
-}
-
-function updateAccordionHeights() {
-    // Mise à jour dynamique de max-height pour des transitions fluides
-    document.querySelectorAll('.league-accordion').forEach(acc => {
-        const body = acc.querySelector('.league-body');
-        if (acc.classList.contains('active')) {
-            body.style.maxHeight = body.scrollHeight + "px";
-        } else {
-            body.style.maxHeight = "0px";
-        }
-    });
-
-    document.querySelectorAll('.country-accordion').forEach(acc => {
-        const body = acc.querySelector('.country-body');
-        if (acc.classList.contains('active')) {
-            body.style.maxHeight = body.scrollHeight + 50 + "px";
-        } else {
-            body.style.maxHeight = "0px";
-        }
-    });
+function toggleAcc(headerEl) {
+    const parent = headerEl.parentElement;
+    parent.classList.toggle('active');
 }
 </script>
 

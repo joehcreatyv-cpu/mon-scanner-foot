@@ -26,7 +26,7 @@ def analyze_match_advanced(xg_h, xg_a):
     ]
     best = max(candidates, key=lambda x: x["confidence"])
 
-    # Données démographiques & tactiques (Inspirées du modèle 2)
+    # Données démographiques & tactiques (Modèle 2)
     demographics = {
         "dom_domination": int(p_home),
         "ext_domination": int(p_away),
@@ -65,8 +65,8 @@ def scan_matches():
     except Exception:
         pass
 
-    # Regroupement strict par Pays / Ligue
-    grouped_by_country = {}
+    # Regroupement par Pays -> Ligues
+    grouped = {}
 
     for m in raw_matches:
         utc_str = m.get("utcDate", "")
@@ -81,6 +81,7 @@ def scan_matches():
         flag = m.get("area", {}).get("flag", "")
         league = m.get("competition", {}).get("name", "Championnat")
         
+        # Algorithme inchangé
         analysis = analyze_match_advanced(1.8, 1.2)
 
         match_data = {
@@ -88,18 +89,53 @@ def scan_matches():
             "home": m.get("homeTeam", {}).get("name"),
             "away": m.get("awayTeam", {}).get("name"),
             "league": league,
+            "country": country,
             "time": match_dt.strftime("%H:%M"),
             "analysis": analysis
         }
 
-        if country not in grouped_by_country:
-            grouped_by_country[country] = {"flag": flag, "matches": []}
-        grouped_by_country[country]["matches"].append(match_data)
+        if country not in grouped:
+            grouped[country] = {"flag": flag, "leagues": {}, "max_confidence": 0}
+        
+        if league not in grouped[country]["leagues"]:
+            grouped[country]["leagues"][league] = {"matches": [], "max_confidence": 0}
+
+        conf = analysis["confidence"]
+        grouped[country]["leagues"][league]["matches"].append(match_data)
+        
+        # Tracking du % max
+        if conf > grouped[country]["leagues"][league]["max_confidence"]:
+            grouped[country]["leagues"][league]["max_confidence"] = conf
+        if conf > grouped[country]["max_confidence"]:
+            grouped[country]["max_confidence"] = conf
+
+    # Tri des matchs au sein de chaque ligue (% décroissant)
+    for c_key, c_val in grouped.items():
+        for l_key, l_val in c_val["leagues"].items():
+            l_val["matches"].sort(key=lambda x: x["analysis"]["confidence"], reverse=True)
+
+    # Convertir en liste triée par % max
+    sorted_countries = []
+    for c_name, c_data in sorted(grouped.items(), key=lambda item: item[1]["max_confidence"], reverse=True):
+        sorted_leagues = []
+        for l_name, l_data in sorted(c_data["leagues"].items(), key=lambda item: item[1]["max_confidence"], reverse=True):
+            sorted_leagues.append({
+                "league_name": l_name,
+                "max_confidence": l_data["max_confidence"],
+                "matches": l_data["matches"]
+            })
+        
+        sorted_countries.append({
+            "country_name": c_name,
+            "flag": c_data["flag"],
+            "max_confidence": c_data["max_confidence"],
+            "leagues": sorted_leagues
+        })
 
     return jsonify({
         "status": "success",
         "time_window": f"{now_utc.strftime('%H:%M')} - {eight_hours.strftime('%H:%M')} UTC",
-        "countries": grouped_by_country
+        "countries": sorted_countries
     })
 
 if __name__ == '__main__':

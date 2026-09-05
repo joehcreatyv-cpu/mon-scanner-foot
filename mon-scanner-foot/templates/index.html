@@ -3,183 +3,272 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FootScan AI - Minimal</title>
+    <title>FootScan AI - Modern Dark</title>
     <style>
         :root {
-            --bg: #0d1117;
-            --card-bg: #161b22;
-            --border: #30363d;
-            --text: #c9d1d9;
-            --accent: #238636;
-            --gold: #d29922;
-            --blue: #58a6ff;
+            --bg: #0b0c10;
+            --card-bg: #14161d;
+            --border: #232733;
+            --text-main: #ffffff;
+            --text-muted: #7e859b;
+            --orange: #ff5e1e;
+            --orange-soft: rgba(255, 94, 30, 0.15);
+            --green: #00e676;
         }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: var(--bg);
-            color: var(--text);
+            background-color: var(--bg);
+            color: var(--text-main);
             margin: 0;
-            padding: 15px;
-            font-size: 13px;
+            padding: 24px;
         }
+
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid var(--border);
-            padding-bottom: 10px;
-            margin-bottom: 15px;
+            padding-bottom: 20px;
+            margin-bottom: 24px;
         }
+
+        .brand {
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .brand span { color: var(--orange); }
+
         .btn-scan {
-            background: var(--accent);
-            color: white;
+            background: var(--orange);
+            color: #fff;
             border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
-            font-weight: bold;
+            padding: 10px 22px;
+            border-radius: 20px;
+            font-weight: 700;
             cursor: pointer;
+            transition: all 0.2s;
         }
-        .btn-scan:hover { opacity: 0.9; }
-        .sector-title {
-            font-size: 14px;
-            font-weight: bold;
-            margin: 15px 0 8px 0;
+
+        .btn-scan:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        /* Structuration par pays */
+        .country-group {
+            margin-bottom: 30px;
+        }
+
+        .country-header {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 14px;
+            border-left: 3px solid var(--orange);
+            padding-left: 10px;
         }
+
         .match-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 10px;
+            grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+            gap: 16px;
         }
+
         .match-card {
             background: var(--card-bg);
             border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 10px;
+            border-radius: 12px;
+            padding: 16px;
         }
-        .match-header {
+
+        .match-meta {
             display: flex;
             justify-content: space-between;
-            color: #8b949e;
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+        }
+
+        .teams-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 14px;
+        }
+
+        /* Représentation Démographique Modèle 2 */
+        .demo-section {
+            background: #0f1015;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .demo-title {
             font-size: 11px;
-            margin-bottom: 5px;
-        }
-        .teams {
-            font-weight: bold;
-            font-size: 14px;
-            color: #f0f6fc;
+            text-transform: uppercase;
+            color: var(--text-muted);
             margin-bottom: 8px;
+            font-weight: 600;
         }
-        .odds-bar {
+
+        .donut-container {
             display: flex;
-            height: 6px;
-            border-radius: 3px;
-            overflow: hidden;
-            margin-bottom: 8px;
-            background: #21262d;
+            justify-content: space-around;
+            align-items: center;
+            text-align: center;
         }
-        .prob-h { background: #238636; }
-        .prob-d { background: #d29922; }
-        .prob-a { background: #8957e5; }
-        .pick-box {
+
+        .circle-stat {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            border: 3px solid var(--orange);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            margin: 0 auto 4px auto;
+        }
+
+        .bar-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .bar-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+        }
+
+        .bar-fill {
+            height: 6px;
+            background: var(--orange);
+            border-radius: 3px;
+        }
+
+        .prediction-badge {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: #21262d;
-            padding: 6px 10px;
-            border-radius: 4px;
-            font-weight: bold;
-        }
-        .conf-badge {
-            background: #1f6beb;
-            color: white;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 11px;
-        }
-        .empty-msg {
-            color: #8b949e;
-            font-style: italic;
-            padding: 8px 0;
+            background: var(--orange-soft);
+            border: 1px solid var(--orange);
+            color: var(--orange);
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 13px;
         }
     </style>
 </head>
 <body>
 
 <div class="header">
-    <div style="font-weight:bold; font-size:16px;">⚽ FootScan AI</div>
-    <div id="time-window" style="color:#8b949e; font-size:12px;">--:-- UTC</div>
-    <button class="btn-scan" onclick="fetchScan()">LANCER LE SCAN</button>
+    <div class="brand">FootScan <span>AI</span></div>
+    <div id="time-window" style="color: var(--text-muted); font-size: 13px;">--:-- UTC</div>
+    <button class="btn-scan" onclick="runScan()">LANCER LE SCAN</button>
 </div>
 
-<div class="sector-title" style="color: var(--accent);">👑 Secteur Premium (≥ 80%) <span id="count-premium"></span></div>
-<div class="match-grid" id="grid-premium"></div>
-
-<div class="sector-title" style="color: var(--gold);">⭐ Secteur Gold (69% - 79%) <span id="count-gold"></span></div>
-<div class="match-grid" id="grid-gold"></div>
-
-<div class="sector-title" style="color: var(--blue);">⚽ Autres Rencontres <span id="count-top"></span></div>
-<div class="match-grid" id="grid-top"></div>
+<div id="content-container"></div>
 
 <script>
-async function fetchScan() {
+async function runScan() {
     const btn = document.querySelector('.btn-scan');
-    btn.innerText = "Analyse...";
+    btn.innerText = "Analyse en cours...";
     btn.disabled = true;
 
     try {
         const res = await fetch('/api/scan');
         const data = await res.json();
 
-        document.getElementById('time-window').innerText = "Fenêtre : " + data.time_window;
+        document.getElementById('time-window').innerText = "Fenêtre d'Analyse : " + data.time_window;
+        const container = document.getElementById('content-container');
+        container.innerHTML = "";
+
+        const countries = data.countries;
         
-        renderSector('grid-premium', 'count-premium', data.premium);
-        renderSector('grid-gold', 'count-gold', data.gold);
-        renderSector('grid-top', 'count-top', data.top_leagues);
+        for (const [country, details] of Object.entries(countries)) {
+            const section = document.createElement('div');
+            section.className = 'country-group';
+
+            let matchesHTML = '';
+            details.matches.forEach(m => {
+                const demo = m.analysis.demographics;
+                matchesHTML += `
+                    <div class="match-card">
+                        <div class="match-meta">
+                            <span>${m.league}</span>
+                            <span>${m.time} UTC</span>
+                        </div>
+                        <div class="teams-title">${m.home} vs ${m.away}</div>
+
+                        <!-- Demographics & Visual Charts -->
+                        <div class="demo-section">
+                            <div class="demo-title">Ratios Démographiques & Dominance</div>
+                            <div class="donut-container">
+                                <div>
+                                    <div class="circle-stat">${demo.dom_domination}%</div>
+                                    <span style="font-size:10px; color:var(--text-muted)">Dom. Domicile</span>
+                                </div>
+                                <div>
+                                    <div class="circle-stat" style="border-color: var(--green);">${demo.ext_domination}%</div>
+                                    <span style="font-size:10px; color:var(--text-muted)">Dom. Extérieur</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="demo-section">
+                            <div class="demo-title">Intensité par tranche de temps</div>
+                            <div class="bar-group">
+                                <div class="bar-row">
+                                    <span style="width:45px;">18-29m</span>
+                                    <div style="flex:1; background:#232733; border-radius:3px;">
+                                        <div class="bar-fill" style="width: ${demo.age_intensity['16-30m']}%;"></div>
+                                    </div>
+                                    <span>${demo.age_intensity['16-30m']}%</span>
+                                </div>
+                                <div class="bar-row">
+                                    <span style="width:45px;">65m+</span>
+                                    <div style="flex:1; background:#232733; border-radius:3px;">
+                                        <div class="bar-fill" style="width: ${demo.age_intensity['61-90m']}%;"></div>
+                                    </div>
+                                    <span>${demo.age_intensity['61-90m']}%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="prediction-badge">
+                            <span>🎯 ${m.analysis.selected_pick}</span>
+                            <span>${m.analysis.confidence}% Confiance</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            section.innerHTML = `
+                <div class="country-header">
+                    <span>${country}</span>
+                </div>
+                <div class="match-grid">${matchesHTML}</div>
+            `;
+            container.appendChild(section);
+        }
 
     } catch (e) {
-        alert("Erreur lors de la récupération des données.");
+        alert("Erreur de récupération des données.");
     } finally {
         btn.innerText = "LANCER LE SCAN";
         btn.disabled = false;
     }
-}
-
-function renderSector(gridId, countId, matches) {
-    const grid = document.getElementById(gridId);
-    const count = document.getElementById(countId);
-    count.innerText = `(${matches.length})`;
-    grid.innerHTML = "";
-
-    if (matches.length === 0) {
-        grid.innerHTML = `<div class="empty-msg">Aucun match trouvé dans ce secteur.</div>`;
-        return;
-    }
-
-    matches.forEach(m => {
-        const pick = m.selected_pick;
-        const card = document.createElement('div');
-        card.className = 'match-card';
-        card.innerHTML = `
-            <div class="match-header">
-                <span>${m.league}</span>
-                <span>${m.date} ${m.time} UTC</span>
-            </div>
-            <div class="teams">${m.home} vs ${m.away}</div>
-            <div class="odds-bar">
-                <div class="prob-h" style="width: ${m.analysis.p_home}%" title="Dom: ${m.analysis.p_home}%"></div>
-                <div class="prob-d" style="width: ${m.analysis.p_draw}%" title="Nul: ${m.analysis.p_draw}%"></div>
-                <div class="prob-a" style="width: ${m.analysis.p_away}%" title="Ext: ${m.analysis.p_away}%"></div>
-            </div>
-            <div class="pick-box">
-                <span>🎯 ${pick.pick}</span>
-                <span class="conf-badge">${pick.confidence}%</span>
-            </div>
-        `;
-        grid.appendChild(card);
-    });
 }
 </script>
 

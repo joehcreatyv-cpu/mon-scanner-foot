@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FootScan AI Pro | Premium & Standard</title>
+    <title>FootScan AI Pro | Live Analytics</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -24,51 +24,34 @@
         .glass-panel {
             background: rgba(15, 23, 42, 0.75);
             backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
             border: 1px solid rgba(255, 255, 255, 0.08);
         }
-        .glow-gold {
-            box-shadow: 0 0 25px -5px rgba(234, 179, 8, 0.3);
-        }
-        .glow-button {
-            box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.5);
-        }
-        .glow-button:hover {
-            box-shadow: 0 0 35px 0px rgba(16, 185, 129, 0.7);
-        }
+        .glow-gold { box-shadow: 0 0 25px -5px rgba(234, 179, 8, 0.3); }
+        .glow-amber { box-shadow: 0 0 25px -5px rgba(245, 158, 11, 0.3); }
+        .glow-button { box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.5); }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans selection:bg-emerald-500 selection:text-slate-950">
-
-    <!-- Glowing Backgrounds -->
-    <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        <div class="absolute -top-40 -left-40 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl"></div>
-        <div class="absolute top-1/2 -right-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl"></div>
-    </div>
 
     <!-- Header -->
     <header class="relative z-10 border-b border-slate-800/80 glass-panel sticky top-0">
         <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-400 to-emerald-400 flex items-center justify-center text-slate-950 font-black shadow-lg">
-                    <i class="fa-solid fa-crown text-lg"></i>
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-400 via-emerald-400 to-teal-400 flex items-center justify-center text-slate-950 font-black shadow-lg">
+                    <i class="fa-solid fa-chart-pie text-lg"></i>
                 </div>
                 <div>
                     <h1 class="text-xl font-extrabold tracking-tight text-white flex items-center gap-2">
                         FootScan <span class="text-amber-400">AI</span>
-                        <span class="text-[10px] uppercase font-bold tracking-widest bg-amber-500/10 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full">v3.5 Multi-Tier</span>
+                        <span class="text-[10px] uppercase font-bold tracking-widest bg-amber-500/10 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full">3 Secteurs</span>
                     </h1>
                 </div>
             </div>
             
             <div class="flex items-center gap-4 text-xs font-medium text-slate-400">
-                <div class="hidden md:flex items-center gap-2 bg-slate-900/80 px-3 py-1.5 rounded-lg border border-slate-800">
-                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span>Modèle Dixon-Coles Live</span>
-                </div>
                 <div class="bg-slate-900/80 px-3 py-1.5 rounded-lg border border-slate-800 text-slate-300">
                     <i class="fa-regular fa-clock text-amber-400 mr-1.5"></i>
-                    <span id="timeRangeText">Aujourd'hui</span>
+                    <span id="windowText">Fenêtre 8h Live</span>
                 </div>
             </div>
         </div>
@@ -81,15 +64,15 @@
         <div class="glass-panel rounded-2xl p-6 md:p-8 relative overflow-hidden shadow-2xl">
             <div class="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
                 <div class="space-y-2 text-center md:text-left">
-                    <h2 class="text-2xl md:text-3xl font-extrabold text-white tracking-tight">Scanner Prédictif Dual-Zone</h2>
+                    <h2 class="text-2xl md:text-3xl font-extrabold text-white tracking-tight">Scanner Analytique Pro (8 Heures)</h2>
                     <p class="text-sm text-slate-400 max-w-xl">
-                        Séparation stricte des résultats : <strong class="text-amber-400">Section Premium (≥80%)</strong> prioritaire et <strong class="text-indigo-400">Section Secondaire (69%-79%)</strong>.
+                        Analyse en temps réel de tous les matchs disponibles sur les 8 prochaines heures avec démographie statistique et classification par secteurs.
                     </p>
                 </div>
 
-                <button id="scanBtn" onclick="runScan()" class="glow-button w-full md:w-auto bg-gradient-to-r from-amber-400 via-emerald-400 to-teal-400 text-slate-950 font-extrabold px-8 py-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-3 cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0">
+                <button id="scanBtn" onclick="runScan()" class="glow-button w-full md:w-auto bg-gradient-to-r from-amber-400 via-emerald-400 to-teal-400 text-slate-950 font-extrabold px-8 py-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-3 cursor-pointer transform hover:-translate-y-0.5">
                     <i class="fa-solid fa-radar text-lg" id="radarIcon"></i>
-                    <span class="tracking-wide uppercase">LANCER LE SCAN</span>
+                    <span class="tracking-wide uppercase">LANCER LE SCAN 8H</span>
                 </button>
             </div>
         </div>
@@ -97,49 +80,50 @@
         <!-- Radar Loading -->
         <div id="loadingState" class="hidden flex-col items-center justify-center py-16 gap-6 glass-panel rounded-2xl">
             <div class="relative w-28 h-28 flex items-center justify-center">
-                <div class="absolute inset-0 border-2 border-amber-500/20 rounded-full"></div>
-                <div class="absolute inset-3 border border-amber-500/40 rounded-full"></div>
-                <div class="absolute inset-8 border border-amber-500/60 rounded-full"></div>
-                <div class="absolute inset-0 rounded-full animate-radar-sweep border-t-2 border-amber-400"></div>
-                <div class="w-3 h-3 bg-amber-400 rounded-full shadow-lg shadow-amber-400/80 animate-ping"></div>
+                <div class="absolute inset-0 border-2 border-emerald-500/20 rounded-full"></div>
+                <div class="absolute inset-0 rounded-full animate-radar-sweep border-t-2 border-emerald-400"></div>
+                <div class="w-3 h-3 bg-emerald-400 rounded-full shadow-lg shadow-emerald-400/80 animate-ping"></div>
             </div>
-            <div class="text-center space-y-1">
-                <p class="text-lg font-bold text-white tracking-wide">Analyse des cotes & matrices Dixon-Coles...</p>
-                <p class="text-xs text-slate-400">Attribution des matchs aux zones Premium (80%+) et Secondaires (69%-79%)</p>
-            </div>
+            <p class="text-lg font-bold text-white tracking-wide">Analyse des cotes et construction des graphiques...</p>
         </div>
 
         <!-- Results Container -->
         <div id="resultsContainer" class="hidden flex-col gap-10">
             
-            <!-- SECTION PREMIUM (≥80%) -->
+            <!-- SECTEUR 1 : PREMIUM (80%+) -->
             <div class="flex flex-col gap-4">
                 <div class="flex items-center justify-between px-2 border-b border-amber-500/30 pb-3">
                     <div class="flex items-center gap-2">
                         <i class="fa-solid fa-crown text-amber-400 text-xl"></i>
-                        <h3 class="text-xl font-extrabold text-white tracking-wide">Résultats Premium <span class="text-amber-400 text-sm font-bold">(Seuil Minimal ≥ 80%)</span></h3>
+                        <h3 class="text-xl font-extrabold text-white tracking-wide">Secteur Premium <span class="text-amber-400 text-sm font-bold">(≥ 80%)</span></h3>
                     </div>
-                    <span class="bg-amber-500/10 text-amber-400 border border-amber-500/30 px-3 py-1 rounded-full text-xs font-bold">
-                        Qualifiés : <strong id="premiumCount">0</strong>
-                    </span>
+                    <span class="bg-amber-500/10 text-amber-400 border border-amber-500/30 px-3 py-1 rounded-full text-xs font-bold" id="premBadge">0 Match</span>
                 </div>
-
                 <div id="premiumCardsList" class="flex flex-col gap-5"></div>
             </div>
 
-            <!-- SECTION SECONDAIRE (69% - 79%) -->
-            <div class="flex flex-col gap-4 pt-6 border-t border-slate-800">
-                <div class="flex items-center justify-between px-2 border-b border-indigo-500/30 pb-3">
+            <!-- SECTEUR 2 : GOLD (69% - 79%) -->
+            <div class="flex flex-col gap-4">
+                <div class="flex items-center justify-between px-2 border-b border-yellow-500/30 pb-3">
                     <div class="flex items-center gap-2">
-                        <i class="fa-solid fa-bolt text-indigo-400 text-xl"></i>
-                        <h3 class="text-xl font-extrabold text-white tracking-wide">Résultats Secondaires <span class="text-indigo-400 text-sm font-bold">(Seuil 69% à 79%)</span></h3>
+                        <i class="fa-solid fa-award text-yellow-400 text-xl"></i>
+                        <h3 class="text-xl font-extrabold text-white tracking-wide">Secteur Gold <span class="text-yellow-400 text-sm font-bold">(69% à 79%)</span></h3>
                     </div>
-                    <span class="bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 px-3 py-1 rounded-full text-xs font-bold">
-                        Qualifiés : <strong id="secondaryCount">0</strong>
-                    </span>
+                    <span class="bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 px-3 py-1 rounded-full text-xs font-bold" id="goldBadge">0 Match</span>
                 </div>
+                <div id="goldCardsList" class="flex flex-col gap-5"></div>
+            </div>
 
-                <div id="secondaryCardsList" class="flex flex-col gap-5"></div>
+            <!-- SECTEUR 3 : TOP 12 LIGUES MAJEURES -->
+            <div class="flex flex-col gap-4 pt-4 border-t border-slate-800">
+                <div class="flex items-center justify-between px-2 border-b border-teal-500/30 pb-3">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-trophy text-teal-400 text-xl"></i>
+                        <h3 class="text-xl font-extrabold text-white tracking-wide">12 Ligues Majeures & Autres Rencontres</h3>
+                    </div>
+                    <span class="bg-teal-500/10 text-teal-400 border border-teal-500/30 px-3 py-1 rounded-full text-xs font-bold" id="topBadge">0 Match</span>
+                </div>
+                <div id="topLeaguesCardsList" class="flex flex-col gap-5"></div>
             </div>
 
         </div>
@@ -147,15 +131,10 @@
     </main>
 
     <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            const now = new Date();
-            document.getElementById('timeRangeText').innerText = `Aujourd'hui (${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`;
-        });
-
-        function renderMatchCard(match, isPremium) {
-            const themeColor = isPremium ? 'amber' : 'indigo';
-            const badgeBg = isPremium ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30';
-            const barGradient = isPremium ? 'from-amber-400 to-emerald-400' : 'from-indigo-500 to-teal-400';
+        function renderMatchCard(match, sectorType) {
+            let accentColor = 'emerald';
+            if (sectorType === 'premium') accentColor = 'amber';
+            if (sectorType === 'gold') accentColor = 'yellow';
 
             let predsHtml = match.analysis.predictions.map(p => `
                 <div class="bg-slate-900/90 border border-slate-800 rounded-lg p-3 space-y-2">
@@ -165,25 +144,27 @@
                     </div>
                     <div class="flex justify-between items-center text-sm">
                         <span class="font-bold text-white">${p.pick}</span>
-                        <span class="font-extrabold ${isPremium ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' : 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20'} px-2.5 py-1 rounded-md border">${p.confidence}%</span>
+                        <span class="font-extrabold text-${accentColor}-400 bg-${accentColor}-500/10 px-2.5 py-1 rounded-md border border-${accentColor}-500/20">${p.confidence}%</span>
                     </div>
                     <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                        <div class="h-full bg-gradient-to-r ${barGradient} rounded-full transition-all duration-1000" style="width: ${p.confidence}%"></div>
+                        <div class="h-full bg-gradient-to-r from-${accentColor}-500 to-teal-400 rounded-full" style="width: ${p.confidence}%"></div>
                     </div>
                 </div>
             `).join('');
 
             return `
-                <div class="glass-panel rounded-xl p-6 hover:border-${themeColor}-500/40 transition-all duration-300 shadow-xl flex flex-col gap-5 ${isPremium ? 'glow-gold' : ''}">
+                <div class="glass-panel rounded-xl p-6 hover:border-${accentColor}-500/40 transition-all duration-300 shadow-xl flex flex-col gap-5">
+                    
+                    <!-- Header Match -->
                     <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
                         <div class="flex items-center gap-4">
-                            <div class="bg-slate-900 border border-slate-800 rounded-lg px-3.5 py-2 text-center">
-                                <i class="fa-regular fa-clock text-${themeColor}-400 text-xs block mb-0.5"></i>
-                                <span class="font-mono text-sm font-bold text-white">${match.time}</span>
+                            <div class="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-center">
+                                <span class="text-[10px] text-slate-400 font-bold block">${match.date}</span>
+                                <span class="font-mono text-sm font-bold text-white">${match.time} UTC</span>
                             </div>
                             <div>
-                                <div class="text-xs text-slate-400 font-semibold mb-0.5">${match.league}</div>
-                                <div class="text-lg font-bold text-white">${match.home} <span class="text-${themeColor}-400 text-sm mx-1">VS</span> ${match.away}</div>
+                                <div class="text-xs text-${accentColor}-400 font-bold uppercase tracking-wider mb-0.5">${match.league}</div>
+                                <div class="text-lg font-bold text-white">${match.home} <span class="text-slate-500 text-sm mx-1">VS</span> ${match.away}</div>
                             </div>
                         </div>
 
@@ -199,6 +180,21 @@
                         </div>
                     </div>
 
+                    <!-- Graphique Démographique / Répartition 1N2 -->
+                    <div class="space-y-1.5 bg-slate-900/50 p-3 rounded-lg border border-slate-800/60">
+                        <div class="flex justify-between text-[11px] font-bold text-slate-400">
+                            <span>Dom (${match.analysis.p_home}%)</span>
+                            <span>Nul (${match.analysis.p_draw}%)</span>
+                            <span>Ext (${match.analysis.p_away}%)</span>
+                        </div>
+                        <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden flex">
+                            <div class="bg-emerald-500 h-full" style="width: ${match.analysis.p_home}%" title="Domicile"></div>
+                            <div class="bg-amber-400 h-full" style="width: ${match.analysis.p_draw}%" title="Nul"></div>
+                            <div class="bg-indigo-500 h-full" style="width: ${match.analysis.p_away}%" title="Extérieur"></div>
+                        </div>
+                    </div>
+
+                    <!-- Prédictions et Clusters -->
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div class="md:col-span-2 flex flex-col gap-2">
                             ${predsHtml}
@@ -211,10 +207,11 @@
                             </div>
                             <div class="pt-2 border-t border-slate-800 flex justify-between items-center text-xs">
                                 <span class="text-slate-400">Couverture Cluster :</span>
-                                <span class="font-bold text-${themeColor}-400">${match.analysis.cluster_score_coverage}%</span>
+                                <span class="font-bold text-${accentColor}-400">${match.analysis.cluster_score_coverage}%</span>
                             </div>
                         </div>
                     </div>
+
                 </div>
             `;
         }
@@ -223,11 +220,8 @@
             const btn = document.getElementById('scanBtn');
             const loading = document.getElementById('loadingState');
             const results = document.getElementById('resultsContainer');
-            const premContainer = document.getElementById('premiumCardsList');
-            const secContainer = document.getElementById('secondaryCardsList');
 
             btn.disabled = true;
-            btn.classList.add('opacity-50', 'cursor-not-allowed');
             loading.classList.remove('hidden');
             loading.classList.add('flex');
             results.classList.add('hidden');
@@ -236,37 +230,30 @@
                 const response = await fetch('/api/scan');
                 const res = await response.json();
 
-                premContainer.innerHTML = '';
-                secContainer.innerHTML = '';
+                document.getElementById('windowText').innerText = `Fenêtre : ${res.time_window}`;
+                document.getElementById('premBadge').innerText = `${res.premium_count} Match(s)`;
+                document.getElementById('goldBadge').innerText = `${res.gold_count} Match(s)`;
+                document.getElementById('topBadge').innerText = `${res.top_leagues_count} Match(s)`;
 
-                document.getElementById('premiumCount').innerText = res.premium_count;
-                document.getElementById('secondaryCount').innerText = res.secondary_count;
+                const pCont = document.getElementById('premiumCardsList');
+                const gCont = document.getElementById('goldCardsList');
+                const tCont = document.getElementById('topLeaguesCardsList');
 
-                // Affichage Premium
-                if (res.premium_count === 0) {
-                    premContainer.innerHTML = `<p class="text-center text-slate-400 text-sm py-4">Aucun match disponible.</p>`;
-                } else {
-                    res.premium.forEach(m => premContainer.innerHTML += renderMatchCard(m, true));
-                }
+                pCont.innerHTML = ''; gCont.innerHTML = ''; tCont.innerHTML = '';
 
-                // Affichage Secondaire
-                if (res.secondary_count === 0) {
-                    secContainer.innerHTML = `<p class="text-center text-slate-400 text-sm py-4">Aucun match qualifié entre 69% et 79% pour ce scan.</p>`;
-                } else {
-                    res.secondary.forEach(m => secContainer.innerHTML += renderMatchCard(m, false));
-                }
+                res.premium.forEach(m => pCont.innerHTML += renderMatchCard(m, 'premium'));
+                res.gold.forEach(m => gCont.innerHTML += renderMatchCard(m, 'gold'));
+                res.top_leagues.forEach(m => tCont.innerHTML += renderMatchCard(m, 'top'));
 
                 loading.classList.add('hidden');
                 loading.classList.remove('flex');
                 results.classList.remove('hidden');
 
             } catch (err) {
-                alert("Erreur lors de la récupération des données.");
+                alert("Erreur lors du scan.");
                 loading.classList.add('hidden');
-                loading.classList.remove('flex');
             } finally {
                 btn.disabled = false;
-                btn.classList.remove('opacity-50', 'cursor-not-allowed');
             }
         }
     </script>

@@ -3,12 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FootScan AI Pro | Scanner de Pronostics</title>
-    <!-- Tailwind CSS CDN -->
+    <title>FootScan AI Pro | Premium & Standard</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
     <script>
@@ -17,14 +14,8 @@
             theme: {
                 extend: {
                     fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] },
-                    animation: {
-                        'radar-sweep': 'sweep 2s linear infinite',
-                        'pulse-glow': 'glow 2s ease-in-out infinite alternate',
-                    },
-                    keyframes: {
-                        sweep: { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } },
-                        glow: { '0%': { opacity: '0.4' }, '100%': { opacity: '1' } }
-                    }
+                    animation: { 'radar-sweep': 'sweep 2s linear infinite' },
+                    keyframes: { sweep: { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } } }
                 }
             }
         }
@@ -36,6 +27,9 @@
             -webkit-backdrop-filter: blur(16px);
             border: 1px solid rgba(255, 255, 255, 0.08);
         }
+        .glow-gold {
+            box-shadow: 0 0 25px -5px rgba(234, 179, 8, 0.3);
+        }
         .glow-button {
             box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.5);
         }
@@ -46,23 +40,23 @@
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans selection:bg-emerald-500 selection:text-slate-950">
 
-    <!-- Glowing Background Gradients -->
+    <!-- Glowing Backgrounds -->
     <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        <div class="absolute -top-40 -left-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl"></div>
-        <div class="absolute top-1/2 -right-40 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl"></div>
+        <div class="absolute -top-40 -left-40 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl"></div>
+        <div class="absolute top-1/2 -right-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl"></div>
     </div>
 
-    <!-- Navigation Bar -->
+    <!-- Header -->
     <header class="relative z-10 border-b border-slate-800/80 glass-panel sticky top-0">
         <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-emerald-500/20">
-                    <i class="fa-solid fa-bolt text-lg"></i>
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-400 to-emerald-400 flex items-center justify-center text-slate-950 font-black shadow-lg">
+                    <i class="fa-solid fa-crown text-lg"></i>
                 </div>
                 <div>
                     <h1 class="text-xl font-extrabold tracking-tight text-white flex items-center gap-2">
-                        FootScan <span class="text-emerald-400">AI</span>
-                        <span class="text-[10px] uppercase font-bold tracking-widest bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full">Pro v2.0</span>
+                        FootScan <span class="text-amber-400">AI</span>
+                        <span class="text-[10px] uppercase font-bold tracking-widest bg-amber-500/10 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full">v3.5 Multi-Tier</span>
                     </h1>
                 </div>
             </div>
@@ -70,88 +64,168 @@
             <div class="flex items-center gap-4 text-xs font-medium text-slate-400">
                 <div class="hidden md:flex items-center gap-2 bg-slate-900/80 px-3 py-1.5 rounded-lg border border-slate-800">
                     <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span>API Live Sync</span>
+                    <span>Modèle Dixon-Coles Live</span>
                 </div>
-                <div id="timeWindowBadge" class="bg-slate-900/80 px-3 py-1.5 rounded-lg border border-slate-800 text-slate-300">
-                    <i class="fa-regular fa-clock text-emerald-400 mr-1.5"></i>
-                    <span>Analyse : <strong id="timeRangeText" class="text-white">Aujourd'hui</strong></span>
+                <div class="bg-slate-900/80 px-3 py-1.5 rounded-lg border border-slate-800 text-slate-300">
+                    <i class="fa-regular fa-clock text-amber-400 mr-1.5"></i>
+                    <span id="timeRangeText">Aujourd'hui</span>
                 </div>
             </div>
         </div>
     </header>
 
-    <!-- Main Content -->
+    <!-- Main -->
     <main class="relative z-10 flex-1 max-w-6xl w-full mx-auto px-4 py-8 flex flex-col gap-8">
 
-        <!-- Control Banner -->
+        <!-- Banner -->
         <div class="glass-panel rounded-2xl p-6 md:p-8 relative overflow-hidden shadow-2xl">
             <div class="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
                 <div class="space-y-2 text-center md:text-left">
-                    <h2 class="text-2xl md:text-3xl font-extrabold text-white tracking-tight">Scanner Algorithmique Haute Précision</h2>
-                    <p class="text-sm text-slate-400 max-w-xl">Analyse en temps réel via la distribution de Poisson et filtrage automatique des prédictions à un indice de confiance supérieur ou égal à <strong class="text-emerald-400">80%</strong>.</p>
+                    <h2 class="text-2xl md:text-3xl font-extrabold text-white tracking-tight">Scanner Prédictif Dual-Zone</h2>
+                    <p class="text-sm text-slate-400 max-w-xl">
+                        Séparation stricte des résultats : <strong class="text-amber-400">Section Premium (≥80%)</strong> prioritaire et <strong class="text-indigo-400">Section Secondaire (69%-79%)</strong>.
+                    </p>
                 </div>
 
-                <button id="scanBtn" onclick="runScan()" class="glow-button w-full md:w-auto bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-extrabold px-8 py-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-3 cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0">
+                <button id="scanBtn" onclick="runScan()" class="glow-button w-full md:w-auto bg-gradient-to-r from-amber-400 via-emerald-400 to-teal-400 text-slate-950 font-extrabold px-8 py-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-3 cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0">
                     <i class="fa-solid fa-radar text-lg" id="radarIcon"></i>
-                    <span class="tracking-wide">LANCER LE SCAN</span>
+                    <span class="tracking-wide uppercase">LANCER LE SCAN</span>
                 </button>
             </div>
         </div>
 
-        <!-- Radar Graphic Motion Scanning State -->
+        <!-- Radar Loading -->
         <div id="loadingState" class="hidden flex-col items-center justify-center py-16 gap-6 glass-panel rounded-2xl">
             <div class="relative w-28 h-28 flex items-center justify-center">
-                <!-- Radar Rings -->
-                <div class="absolute inset-0 border-2 border-emerald-500/20 rounded-full"></div>
-                <div class="absolute inset-3 border border-emerald-500/40 rounded-full"></div>
-                <div class="absolute inset-8 border border-emerald-500/60 rounded-full"></div>
-                
-                <!-- Rotating Sweep Line -->
-                <div class="absolute inset-0 rounded-full animate-radar-sweep border-t-2 border-emerald-400"></div>
-                
-                <!-- Center Glowing Dot -->
-                <div class="w-3 h-3 bg-emerald-400 rounded-full shadow-lg shadow-emerald-400/80 animate-ping"></div>
+                <div class="absolute inset-0 border-2 border-amber-500/20 rounded-full"></div>
+                <div class="absolute inset-3 border border-amber-500/40 rounded-full"></div>
+                <div class="absolute inset-8 border border-amber-500/60 rounded-full"></div>
+                <div class="absolute inset-0 rounded-full animate-radar-sweep border-t-2 border-amber-400"></div>
+                <div class="w-3 h-3 bg-amber-400 rounded-full shadow-lg shadow-amber-400/80 animate-ping"></div>
             </div>
-
             <div class="text-center space-y-1">
-                <p class="text-lg font-bold text-white tracking-wide">Analyse des flux API en cours...</p>
-                <p class="text-xs text-slate-400">Calcul des expected goals (xG) et évaluation des matrices de probabilité</p>
+                <p class="text-lg font-bold text-white tracking-wide">Analyse des cotes & matrices Dixon-Coles...</p>
+                <p class="text-xs text-slate-400">Attribution des matchs aux zones Premium (80%+) et Secondaires (69%-79%)</p>
             </div>
         </div>
 
-        <!-- Results Section -->
-        <div id="resultsContainer" class="hidden flex-col gap-4">
-            <div class="flex items-center justify-between px-2 text-sm text-slate-400">
-                <span class="flex items-center gap-2">
-                    <i class="fa-solid fa-filter text-emerald-400"></i>
-                    Rencontres retenues : <strong id="matchCount" class="text-emerald-400 font-bold">0</strong>
-                </span>
-                <span class="bg-slate-900 border border-slate-800 px-3 py-1 rounded-full text-xs">Seuil minimal : <strong class="text-emerald-400">80%</strong></span>
+        <!-- Results Container -->
+        <div id="resultsContainer" class="hidden flex-col gap-10">
+            
+            <!-- SECTION PREMIUM (≥80%) -->
+            <div class="flex flex-col gap-4">
+                <div class="flex items-center justify-between px-2 border-b border-amber-500/30 pb-3">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-crown text-amber-400 text-xl"></i>
+                        <h3 class="text-xl font-extrabold text-white tracking-wide">Résultats Premium <span class="text-amber-400 text-sm font-bold">(Seuil Minimal ≥ 80%)</span></h3>
+                    </div>
+                    <span class="bg-amber-500/10 text-amber-400 border border-amber-500/30 px-3 py-1 rounded-full text-xs font-bold">
+                        Qualifiés : <strong id="premiumCount">0</strong>
+                    </span>
+                </div>
+
+                <div id="premiumCardsList" class="flex flex-col gap-5"></div>
             </div>
 
-            <!-- Match Cards Container -->
-            <div id="matchCardsList" class="flex flex-col gap-4">
-                <!-- Cards injected dynamically via JS -->
+            <!-- SECTION SECONDAIRE (69% - 79%) -->
+            <div class="flex flex-col gap-4 pt-6 border-t border-slate-800">
+                <div class="flex items-center justify-between px-2 border-b border-indigo-500/30 pb-3">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-bolt text-indigo-400 text-xl"></i>
+                        <h3 class="text-xl font-extrabold text-white tracking-wide">Résultats Secondaires <span class="text-indigo-400 text-sm font-bold">(Seuil 69% à 79%)</span></h3>
+                    </div>
+                    <span class="bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 px-3 py-1 rounded-full text-xs font-bold">
+                        Qualifiés : <strong id="secondaryCount">0</strong>
+                    </span>
+                </div>
+
+                <div id="secondaryCardsList" class="flex flex-col gap-5"></div>
             </div>
+
         </div>
 
     </main>
 
     <script>
-        // Met à jour l'heure affichée dans la barre de navigation
         document.addEventListener("DOMContentLoaded", () => {
             const now = new Date();
-            const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            document.getElementById('timeRangeText').innerText = `Aujourd'hui (dès ${timeStr})`;
+            document.getElementById('timeRangeText').innerText = `Aujourd'hui (${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`;
         });
+
+        function renderMatchCard(match, isPremium) {
+            const themeColor = isPremium ? 'amber' : 'indigo';
+            const badgeBg = isPremium ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30';
+            const barGradient = isPremium ? 'from-amber-400 to-emerald-400' : 'from-indigo-500 to-teal-400';
+
+            let predsHtml = match.analysis.predictions.map(p => `
+                <div class="bg-slate-900/90 border border-slate-800 rounded-lg p-3 space-y-2">
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-[10px] uppercase tracking-wider text-slate-400 font-bold">${p.market}</span>
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">${p.risk_profile}</span>
+                    </div>
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="font-bold text-white">${p.pick}</span>
+                        <span class="font-extrabold ${isPremium ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' : 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20'} px-2.5 py-1 rounded-md border">${p.confidence}%</span>
+                    </div>
+                    <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r ${barGradient} rounded-full transition-all duration-1000" style="width: ${p.confidence}%"></div>
+                    </div>
+                </div>
+            `).join('');
+
+            return `
+                <div class="glass-panel rounded-xl p-6 hover:border-${themeColor}-500/40 transition-all duration-300 shadow-xl flex flex-col gap-5 ${isPremium ? 'glow-gold' : ''}">
+                    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
+                        <div class="flex items-center gap-4">
+                            <div class="bg-slate-900 border border-slate-800 rounded-lg px-3.5 py-2 text-center">
+                                <i class="fa-regular fa-clock text-${themeColor}-400 text-xs block mb-0.5"></i>
+                                <span class="font-mono text-sm font-bold text-white">${match.time}</span>
+                            </div>
+                            <div>
+                                <div class="text-xs text-slate-400 font-semibold mb-0.5">${match.league}</div>
+                                <div class="text-lg font-bold text-white">${match.home} <span class="text-${themeColor}-400 text-sm mx-1">VS</span> ${match.away}</div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-3">
+                            <div class="bg-slate-900/80 border border-slate-800 rounded-lg px-3 py-1.5 text-center">
+                                <span class="text-[10px] text-slate-400 font-bold block uppercase">xG Attendu</span>
+                                <span class="font-mono text-xs font-bold text-slate-200">${match.analysis.xg_home} - ${match.analysis.xg_away}</span>
+                            </div>
+                            <div class="bg-slate-900/80 border border-slate-800 rounded-lg px-3 py-1.5 text-center">
+                                <span class="text-[10px] text-slate-400 font-bold block uppercase">Volatilité</span>
+                                <span class="font-mono text-xs font-bold text-teal-400">${match.analysis.volatility_index}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="md:col-span-2 flex flex-col gap-2">
+                            ${predsHtml}
+                        </div>
+
+                        <div class="bg-slate-900/60 border border-slate-800/80 rounded-lg p-4 flex flex-col justify-between space-y-3">
+                            <div>
+                                <span class="text-[10px] uppercase tracking-wider text-slate-400 font-bold block mb-1">Cluster 3 Scores Exacts</span>
+                                <p class="text-xs font-mono font-semibold text-slate-200 leading-relaxed">${match.analysis.top3_exact_scores}</p>
+                            </div>
+                            <div class="pt-2 border-t border-slate-800 flex justify-between items-center text-xs">
+                                <span class="text-slate-400">Couverture Cluster :</span>
+                                <span class="font-bold text-${themeColor}-400">${match.analysis.cluster_score_coverage}%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
 
         async function runScan() {
             const btn = document.getElementById('scanBtn');
             const loading = document.getElementById('loadingState');
             const results = document.getElementById('resultsContainer');
-            const cardsContainer = document.getElementById('matchCardsList');
+            const premContainer = document.getElementById('premiumCardsList');
+            const secContainer = document.getElementById('secondaryCardsList');
 
-            // Feedback visuel au clic
             btn.disabled = true;
             btn.classList.add('opacity-50', 'cursor-not-allowed');
             loading.classList.remove('hidden');
@@ -162,67 +236,24 @@
                 const response = await fetch('/api/scan');
                 const res = await response.json();
 
-                cardsContainer.innerHTML = '';
-                document.getElementById('matchCount').innerText = res.count;
+                premContainer.innerHTML = '';
+                secContainer.innerHTML = '';
 
-                if (res.count === 0) {
-                    cardsContainer.innerHTML = `
-                        <div class="glass-panel rounded-xl p-8 text-center text-slate-400 space-y-2">
-                            <i class="fa-solid fa-calendar-xmark text-3xl text-slate-600 mb-2"></i>
-                            <p class="font-semibold text-slate-200">Aucun match disponible à cette heure</p>
-                            <p class="text-xs">Aucune rencontre du jour n'atteint le seuil de haute fiabilité (80%) pour le moment.</p>
-                        </div>
-                    `;
+                document.getElementById('premiumCount').innerText = res.premium_count;
+                document.getElementById('secondaryCount').innerText = res.secondary_count;
+
+                // Affichage Premium
+                if (res.premium_count === 0) {
+                    premContainer.innerHTML = `<p class="text-center text-slate-400 text-sm py-4">Aucun match disponible.</p>`;
                 } else {
-                    res.data.forEach(match => {
-                        let predsHtml = match.analysis.predictions.map(p => `
-                            <div class="bg-slate-900/90 border border-slate-800 rounded-lg p-3 space-y-1.5">
-                                <div class="flex justify-between items-center text-xs">
-                                    <span class="font-semibold text-emerald-300 flex items-center gap-1.5">
-                                        <i class="fa-solid fa-circle-check text-emerald-400 text-[10px]"></i>
-                                        ${p.type}
-                                    </span>
-                                    <span class="font-extrabold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">${p.confidence}%</span>
-                                </div>
-                                <!-- Animated Confidence Bar -->
-                                <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                                    <div class="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-1000" style="width: ${p.confidence}%"></div>
-                                </div>
-                            </div>
-                        `).join('');
+                    res.premium.forEach(m => premContainer.innerHTML += renderMatchCard(m, true));
+                }
 
-                        cardsContainer.innerHTML += `
-                            <div class="glass-panel rounded-xl p-5 hover:border-emerald-500/40 transition-all duration-300 shadow-lg flex flex-col md:flex-row items-stretch md:items-center justify-between gap-6">
-                                <!-- Teams and Time -->
-                                <div class="flex items-center gap-4 flex-1">
-                                    <div class="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-center min-w-[65px]">
-                                        <i class="fa-regular fa-clock text-emerald-400 text-xs block mb-0.5"></i>
-                                        <span class="font-mono text-sm font-bold text-white">${match.time}</span>
-                                    </div>
-                                    <div class="space-y-1 flex-1">
-                                        <div class="flex items-center gap-2">
-                                            <span class="font-bold text-white text-base">${match.home}</span>
-                                        </div>
-                                        <div class="text-xs text-slate-500 font-semibold">VS</div>
-                                        <div class="flex items-center gap-2">
-                                            <span class="font-bold text-white text-base">${match.away}</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- xG Stats -->
-                                <div class="flex flex-col items-center justify-center bg-slate-900/60 border border-slate-800/80 rounded-lg px-4 py-2 text-center">
-                                    <span class="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-1">xG Estimé</span>
-                                    <span class="font-mono font-bold text-sm text-emerald-400">${match.analysis.home_xg} - ${match.analysis.away_xg}</span>
-                                </div>
-
-                                <!-- Predictions Box -->
-                                <div class="flex-1 space-y-2">
-                                    ${predsHtml}
-                                </div>
-                            </div>
-                        `;
-                    });
+                // Affichage Secondaire
+                if (res.secondary_count === 0) {
+                    secContainer.innerHTML = `<p class="text-center text-slate-400 text-sm py-4">Aucun match qualifié entre 69% et 79% pour ce scan.</p>`;
+                } else {
+                    res.secondary.forEach(m => secContainer.innerHTML += renderMatchCard(m, false));
                 }
 
                 loading.classList.add('hidden');

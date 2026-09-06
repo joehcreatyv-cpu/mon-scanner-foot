@@ -14,7 +14,7 @@ HEADERS = {"X-Auth-Token": API_KEY}
 STANDINGS_CACHE = {}
 
 # ==========================================
-# FONCTION DE REQUÊTE SÉCURISÉE VERS L'API
+# FONCTIONS REQUÊTES
 # ==========================================
 
 def fetch_matches_from_api(date_from, date_to):
@@ -29,10 +29,6 @@ def fetch_matches_from_api(date_from, date_to):
     except Exception as e:
         print(f"Erreur API /matches: {e}")
     return []
-
-# ==========================================
-# AGENT IA 1 : EXTRACTION DU CLASSEMENT OFFICIEL
-# ==========================================
 
 def get_league_standings(competition_id):
     now = time.time()
@@ -54,79 +50,149 @@ def get_league_standings(competition_id):
     return []
 
 # ==========================================
-# AGENT IA 2 : ANALYSTE DE PERFORMANCE
+# SYSTÈME MULTI-AGENTS IA POUR L'ANALYSE
 # ==========================================
 
-class IntelligenceScanAgent:
-    def evaluate_match_from_standings(self, home_id, away_id, standings):
-        home_stats = None
-        away_stats = None
+class PatternExtractionAgent:
+    """AGENT IA 1 : Détection des motifs de performance et de dynamique d'équipe"""
+    def extract_team_patterns(self, home_stats, away_stats):
+        h_played = max(1, home_stats.get("playedGames", 1))
+        a_played = max(1, away_stats.get("playedGames", 1))
 
-        for table_group in standings:
-            table = table_group.get("table", [])
-            for entry in table:
-                team_id = entry.get("team", {}).get("id")
-                if team_id == home_id:
-                    home_stats = entry
-                elif team_id == away_id:
-                    away_stats = entry
+        # Attaque et Défense par match
+        h_attack = home_stats.get("goalsFor", 0) / h_played
+        h_defense = home_stats.get("goalsAgainst", 0) / h_played
+        a_attack = away_stats.get("goalsFor", 0) / a_played
+        a_defense = away_stats.get("goalsAgainst", 0) / a_played
 
-        if home_stats and away_stats:
-            h_played = max(1, home_stats.get("playedGames", 1))
-            a_played = max(1, away_stats.get("playedGames", 1))
+        # Calcul xG projeté
+        lambda_home = max(0.4, h_attack * (a_defense / 1.1 if a_defense > 0 else 1.0))
+        lambda_away = max(0.4, a_attack * (h_defense / 1.1 if h_defense > 0 else 1.0))
 
-            h_gf_avg = home_stats.get("goalsFor", 0) / h_played
-            h_ga_avg = home_stats.get("goalsAgainst", 0) / h_played
-            a_gf_avg = away_stats.get("goalsFor", 0) / a_played
-            a_ga_avg = away_stats.get("goalsAgainst", 0) / a_played
-
-            projected_h_xg = round(h_gf_avg * (a_ga_avg / 1.1 if a_ga_avg > 0 else 1.0), 2)
-            projected_a_xg = round(a_gf_avg * (h_ga_avg / 1.1 if h_ga_avg > 0 else 1.0), 2)
-
-            h_pos = home_stats.get("position", 10)
-            a_pos = away_stats.get("position", 10)
-            pos_diff = a_pos - h_pos
-
-            confidence = 72.0
-            pick = "Plus de 1.5 Buts dans le match"
-
-            if pos_diff >= 4 or projected_h_xg >= projected_a_xg + 0.6:
-                pick = "1X (Double Chance Domicile)"
-                confidence = min(98.0, 80.0 + (pos_diff * 1.5) + (projected_h_xg * 3))
-            elif pos_diff <= -4 or projected_a_xg >= projected_h_xg + 0.6:
-                pick = "X2 (Double Chance Extérieur)"
-                confidence = min(98.0, 80.0 + (abs(pos_diff) * 1.5) + (projected_a_xg * 3))
-            elif (projected_h_xg + projected_a_xg) >= 2.2:
-                pick = "Plus de 1.5 Buts dans le match"
-                confidence = min(96.0, 78.0 + ((projected_h_xg + projected_a_xg) * 4))
-
-            return {
-                "selected_pick": pick,
-                "confidence": round(confidence, 1),
-                "xg_home": max(0.5, projected_h_xg),
-                "xg_away": max(0.5, projected_a_xg)
-            }
+        pos_diff = away_stats.get("position", 10) - home_stats.get("position", 10)
 
         return {
-            "selected_pick": "Plus de 1.5 Buts dans le match",
-            "confidence": 71.0,
-            "xg_home": 1.3,
-            "xg_away": 1.0
+            "lambda_home": lambda_home,
+            "lambda_away": lambda_away,
+            "pos_diff": pos_diff,
+            "h_attack": h_attack,
+            "a_attack": a_attack
         }
 
-ia_agent = IntelligenceScanAgent()
+class PoissonProbabilityAgent:
+    """AGENT IA 2 : Moteur probabiliste (Loi de Poisson pour Score Exact & BTTS)"""
+    def compute_poisson_matrix(self, lambda_home, lambda_away):
+        def poisson_pmf(k, lamb):
+            return (math.pow(lamb, k) * math.exp(-lamb)) / math.factorial(k)
+
+        matrix = {}
+        max_prob = 0.0
+        best_score = (1, 0)
+
+        btts_prob = 0.0
+        over15_prob = 0.0
+        over25_prob = 0.0
+
+        for h_goals in range(6):
+            for a_goals in range(6):
+                p_h = poisson_pmf(h_goals, lambda_home)
+                p_a = poisson_pmf(a_goals, lambda_away)
+                p_joint = p_h * p_a
+
+                if p_joint > max_prob:
+                    max_prob = p_joint
+                    best_score = (h_goals, a_goals)
+
+                if h_goals > 0 and a_goals > 0:
+                    btts_prob += p_joint
+
+                if (h_goals + a_goals) > 1.5:
+                    over15_prob += p_joint
+
+                if (h_goals + a_goals) > 2.5:
+                    over25_prob += p_joint
+
+        return {
+            "exact_score": f"{best_score[0]} - {best_score[1]}",
+            "btts_prediction": "Oui" if btts_prob >= 0.52 else "Non",
+            "btts_prob": round(btts_prob * 100, 1),
+            "over15_prob": round(over15_prob * 100, 1),
+            "over25_prob": round(over25_prob * 100, 1)
+        }
+
+class MultiMarketDecisionAgent:
+    """AGENT IA 3 : Décisionnaire principal et synthétiseur de confiance multi-marchés"""
+    def evaluate(self, patterns, poisson_data):
+        l_h = patterns["lambda_home"]
+        l_a = patterns["lambda_away"]
+        pos_diff = patterns["pos_diff"]
+
+        # 1. Sélection du pronostic principal (Double Chance ou Over/Under)
+        if pos_diff >= 3 or l_h >= l_a + 0.6:
+            main_pick = "1X (Double Chance Domicile)"
+            confidence = min(98.0, 81.0 + (pos_diff * 1.4) + (l_h * 3.5))
+        elif pos_diff <= -3 or l_a >= l_h + 0.6:
+            main_pick = "X2 (Double Chance Extérieur)"
+            confidence = min(98.0, 81.0 + (abs(pos_diff) * 1.4) + (l_a * 3.5))
+        elif (l_h + l_a) >= 2.3:
+            main_pick = "Plus de 1.5 Buts dans le match"
+            confidence = min(96.0, 78.0 + ((l_h + l_a) * 4.5))
+        else:
+            main_pick = "Moins de 3.5 Buts dans le match"
+            confidence = 74.0
+
+        # 2. Pronostic Buts alternatif (Over 1.5 / Over 2.5)
+        if poisson_data["over25_prob"] >= 58.0:
+            goals_pick = "Plus de 2.5 Buts"
+        else:
+            goals_pick = "Plus de 1.5 Buts"
+
+        return {
+            "main_prediction": main_pick,
+            "confidence": round(confidence, 1),
+            "exact_score": poisson_data["exact_score"],
+            "btts": poisson_data["btts_prediction"],
+            "goals_pick": goals_pick,
+            "over15_prob": poisson_data["over15_prob"],
+            "over25_prob": poisson_data["over25_prob"]
+        }
+
+# Initialisation des Agents IA
+pattern_agent = PatternExtractionAgent()
+poisson_agent = PoissonProbabilityAgent()
+decision_agent = MultiMarketDecisionAgent()
 
 def run_prediction_pipeline(home_id, away_id, competition_id):
     standings = get_league_standings(competition_id)
-    analysis = ia_agent.evaluate_match_from_standings(home_id, away_id, standings)
+    
+    home_stats = None
+    away_stats = None
 
-    conf = analysis["confidence"]
+    for table_group in standings:
+        table = table_group.get("table", [])
+        for entry in table:
+            team_id = entry.get("team", {}).get("id")
+            if team_id == home_id:
+                home_stats = entry
+            elif team_id == away_id:
+                away_stats = entry
 
+    if not home_stats or not away_stats:
+        # Repli sécurisé si l'équipe n'est pas encore enregistrée
+        home_stats = {"playedGames": 10, "goalsFor": 12, "goalsAgainst": 10, "position": 8}
+        away_stats = {"playedGames": 10, "goalsFor": 10, "goalsAgainst": 12, "position": 10}
+
+    # Pipeline d'analyse séquentielle par les agents IA
+    patterns = pattern_agent.extract_team_patterns(home_stats, away_stats)
+    poisson_res = poisson_agent.compute_poisson_matrix(patterns["lambda_home"], patterns["lambda_away"])
+    final_analysis = decision_agent.evaluate(patterns, poisson_res)
+
+    conf = final_analysis["confidence"]
     if conf < 69.0:
         return None
 
-    xg_h = analysis["xg_home"]
-    xg_a = analysis["xg_away"]
+    xg_h = round(patterns["lambda_home"], 2)
+    xg_a = round(patterns["lambda_away"], 2)
 
     metrics = {
         "dom_domination": int(min(90, (xg_h / (xg_h + xg_a + 0.1)) * 100)),
@@ -139,7 +205,10 @@ def run_prediction_pipeline(home_id, away_id, competition_id):
     return {
         "xg_home": xg_h,
         "xg_away": xg_a,
-        "selected_pick": analysis["selected_pick"],
+        "selected_pick": final_analysis["main_prediction"],
+        "exact_score": final_analysis["exact_score"],
+        "btts": final_analysis["btts"],
+        "goals_pick": final_analysis["goals_pick"],
         "confidence": conf,
         "reliability_score": conf,
         "is_priority": conf >= 80.0,
@@ -160,16 +229,14 @@ def scan_matches():
     try:
         now_utc = datetime.now(timezone.utc)
         
-        # 1. Fenêtre initiale de 12h
         target_date = now_utc + timedelta(hours=12)
         raw_matches = fetch_matches_from_api(now_utc, target_date)
         time_window_label = "Prochaines 12h"
 
-        # 2. Extension automatique si aucun match n'est disponible
         if not raw_matches:
             target_date = now_utc + timedelta(hours=48)
             raw_matches = fetch_matches_from_api(now_utc, target_date)
-            time_window_label = "Prochaines 48h (Garantie de résultats)"
+            time_window_label = "Prochaines 48h (Analyse IA Étendue)"
 
         flat_matches = []
         grouped = {}
@@ -218,6 +285,9 @@ def scan_matches():
                 "time": match_dt.strftime("%H:%M"),
                 "analysis": analysis,
                 "prediction": analysis["selected_pick"],
+                "exact_score": analysis["exact_score"],
+                "btts": analysis["btts"],
+                "goals_pick": analysis["goals_pick"],
                 "confidence": analysis["confidence"],
                 "is_priority": analysis["is_priority"],
                 "metrics": analysis["metrics"]
@@ -268,7 +338,6 @@ def scan_matches():
 
     except Exception as e:
         print(f"Erreur globale dans /api/scan: {e}")
-        # En cas d'exception non gérée, renvoyer une structure valide pour éviter la pop-up JS
         return jsonify({
             "status": "error",
             "message": str(e),

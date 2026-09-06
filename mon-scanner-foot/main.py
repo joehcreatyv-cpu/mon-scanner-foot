@@ -78,7 +78,6 @@ class PatternExtractionAgent:
         selected_pick = None
         pattern_confidence = 0.0
 
-        # Application des critères de détection
         if projected_home_xg >= (projected_away_xg + 0.8) and combined_stability >= 0.35:
             pattern_match = True
             selected_pick = "1X (Double Chance Domicile)"
@@ -108,7 +107,7 @@ class PatternExtractionAgent:
 pattern_agent = PatternExtractionAgent()
 
 # ==========================================
-# GENERATEUR D'HISTORIQUE & PIPELINE
+# GÉNÉRATEUR D'HISTORIQUE & PIPELINE
 # ==========================================
 
 def generate_simulated_history(match_id, team_name, is_home=True):
@@ -184,9 +183,11 @@ def scan_matches():
         if req.status_code == 200:
             raw_matches = req.json().get("matches", [])
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        # En cas d'erreur API, renvoyer une réponse JSON valide au lieu de planter
+        return jsonify({"status": "error", "message": str(e), "countries": [], "matches": []}), 200
 
     grouped = {}
+    flat_matches = []
 
     for m in raw_matches:
         status = m.get("status", "")
@@ -218,9 +219,12 @@ def scan_matches():
             "away": away_name,
             "league": league,
             "country": country,
+            "flag": flag,
             "time": match_dt.strftime("%H:%M"),
             "analysis": analysis
         }
+
+        flat_matches.append(match_data)
 
         if country not in grouped:
             grouped[country] = {"flag": flag, "leagues": {}, "max_confidence": 0}
@@ -254,10 +258,12 @@ def scan_matches():
             "leagues": sorted_leagues
         })
 
+    # Renvoie les deux formats (countries et matches) pour assurer la rétrocompatibilité complète du JS
     return jsonify({
         "status": "success",
         "time_window": f"{now_utc.strftime('%Y-%m-%d')} au {target_date.strftime('%Y-%m-%d')}",
-        "countries": sorted_countries
+        "countries": sorted_countries,
+        "matches": flat_matches
     })
 
 if __name__ == '__main__':

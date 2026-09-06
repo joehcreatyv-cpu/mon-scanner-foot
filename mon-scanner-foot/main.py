@@ -107,7 +107,7 @@ class PatternExtractionAgent:
 pattern_agent = PatternExtractionAgent()
 
 # ==========================================
-# GÉNÉRATEUR D'HISTORIQUE & PIPELINE
+# GENERATEUR D'HISTORIQUE & PIPELINE
 # ==========================================
 
 def generate_simulated_history(match_id, team_name, is_home=True):
@@ -141,7 +141,7 @@ def run_prediction_pipeline(match_id, home_team, away_team):
     xg_h = evaluation["projected_xg"]["home"]
     xg_a = evaluation["projected_xg"]["away"]
 
-    demographics = {
+    metrics = {
         "dom_domination": int(min(90, (xg_h / (xg_h + xg_a + 0.1)) * 100)),
         "ext_domination": int(min(90, (xg_a / (xg_h + xg_a + 0.1)) * 100)),
         "draw_prob": int(max(10, 100 - ((xg_h + xg_a) * 20))),
@@ -154,8 +154,10 @@ def run_prediction_pipeline(match_id, home_team, away_team):
         "xg_away": xg_a,
         "selected_pick": evaluation["selected_pick"],
         "confidence": evaluation["pattern_confidence"],
+        "reliability_score": evaluation["pattern_confidence"],
         "is_high_reliability": evaluation["pattern_confidence"] >= 85.0,
-        "demographics": demographics
+        "metrics": metrics,
+        "demographics": metrics
     }
 
 # ==========================================
@@ -183,7 +185,6 @@ def scan_matches():
         if req.status_code == 200:
             raw_matches = req.json().get("matches", [])
     except Exception as e:
-        # En cas d'erreur API, renvoyer une réponse JSON valide au lieu de planter
         return jsonify({"status": "error", "message": str(e), "countries": [], "matches": []}), 200
 
     grouped = {}
@@ -217,11 +218,16 @@ def scan_matches():
             "id": m.get("id"),
             "home": home_name,
             "away": away_name,
+            "home_team": home_name,
+            "away_team": away_name,
             "league": league,
             "country": country,
             "flag": flag,
             "time": match_dt.strftime("%H:%M"),
-            "analysis": analysis
+            "analysis": analysis,
+            "prediction": analysis["selected_pick"],
+            "confidence": analysis["confidence"],
+            "metrics": analysis["metrics"]
         }
 
         flat_matches.append(match_data)
@@ -258,7 +264,6 @@ def scan_matches():
             "leagues": sorted_leagues
         })
 
-    # Renvoie les deux formats (countries et matches) pour assurer la rétrocompatibilité complète du JS
     return jsonify({
         "status": "success",
         "time_window": f"{now_utc.strftime('%Y-%m-%d')} au {target_date.strftime('%Y-%m-%d')}",

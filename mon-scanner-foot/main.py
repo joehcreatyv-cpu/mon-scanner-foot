@@ -1,5 +1,6 @@
 import os
 import math
+import requests
 from datetime import datetime, timedelta, timezone
 from flask import Flask, render_template, jsonify
 
@@ -9,158 +10,152 @@ API_KEY = os.environ.get("FOOTBALL_DATA_KEY", "6a7f0cc1d0594fe48481f70b3dc9cfe7"
 BASE_URL = "https://api.football-data.org/v4"
 
 # ==========================================
-# ARME SECRÈTE : SOUS-AGENT IA (PATTERN MATCHING & SIGNATURES)
+# SOUS-AGENT IA : DÉTECTEUR DE PATTERNS
 # ==========================================
 
-class TeamPatternAgent:
-    """
-    Sous-agent IA dédié exclusivement à la détection et l'étude des patterns 
-    et signatures statistiques récurrentes de chaque équipe.
-    """
-    def extract_and_analyze_pattern(self, xg_h, xg_a, squad_integrity):
-        # Vecteur de puissance relative et de consistance
-        power_index = (xg_h - xg_a) * squad_integrity
-        total_fluidity = (xg_h + xg_a) * squad_integrity
+class PatternExtractionAgent:
+    def __init__(self, min_sample_size=3):
+        self.min_sample_size = min_sample_size
 
-        # Pattern 1 : Dominance Domicile Ultra-Stable
-        if power_index >= 0.75:
-            return {
-                "matched": True,
-                "pattern_type": "PATTERN_DOMINANCE_DOMICILE",
-                "certainty_score": 0.96,
-                "recommended_market": "1X"
+    def extract_team_signature(self, match_history, is_home=True):
+        if len(match_history) < self.min_sample_size:
+            return None
+
+        xg_for = []
+        xg_against = []
+        conversion_rates = []
+        resilience_scores = []
+
+        for m in match_history:
+            gf = m['goals_for']
+            ga = m['goals_against']
+            xg_f = m['xg_for']
+            xg_a = m['xg_against']
+
+            xg_for.append(xg_f)
+            xg_against.append(xg_a)
+
+            conv = (gf / xg_f) if xg_f > 0 else 1.0
+            conversion_rates.append(conv)
+
+            res = (1.0 / (ga + 1.0)) * (xg_a + 0.5)
+            resilience_scores.append(res)
+
+        mean_xg_f = sum(xg_for) / len(xg_for)
+        mean_xg_a = sum(xg_against) / len(xg_against)
+
+        variance_f = sum((x - mean_xg_f) ** 2 for x in xg_for) / len(xg_for)
+        variance_a = sum((x - mean_xg_a) ** 2 for x in xg_against) / len(xg_against)
+        std_xg_f = math.sqrt(variance_f)
+        std_xg_a = math.sqrt(variance_a)
+
+        stability_score = 1.0 / (1.0 + std_xg_f + std_xg_a)
+
+        mean_conv = sum(conversion_rates) / len(conversion_rates)
+        mean_res = sum(resilience_scores) / len(resilience_scores)
+
+        return {
+            "expected_xg_f": round(float(mean_xg_f), 2),
+            "expected_xg_a": round(float(mean_xg_a), 2),
+            "conversion_factor": round(float(mean_conv), 2),
+            "resilience_factor": round(float(mean_res), 2),
+            "stability_index": round(float(stability_score), 3)
+        }
+
+    def evaluate_match_pattern(self, home_history, away_history):
+        sig_home = self.extract_team_signature(home_history, is_home=True)
+        sig_away = self.extract_team_signature(away_history, is_home=False)
+
+        if not sig_home or not sig_away:
+            return {"pattern_found": False, "confidence": 0.0, "reason": "Historique insuffisant"}
+
+        combined_stability = (sig_home["stability_index"] + sig_away["stability_index"]) / 2.0
+
+        projected_home_xg = sig_home["expected_xg_f"] * (sig_away["expected_xg_a"] / 1.2)
+        projected_away_xg = sig_away["expected_xg_f"] * (sig_home["expected_xg_a"] / 1.2)
+
+        pattern_match = False
+        selected_pick = None
+        pattern_confidence = 0.0
+
+        # Application des critères de détection
+        if projected_home_xg >= (projected_away_xg + 0.8) and combined_stability >= 0.35:
+            pattern_match = True
+            selected_pick = "1X (Double Chance Domicile)"
+            pattern_confidence = min(98.5, 80.0 + (combined_stability * 25))
+
+        elif projected_away_xg >= (projected_home_xg + 0.8) and combined_stability >= 0.35:
+            pattern_match = True
+            selected_pick = "X2 (Double Chance Extérieur)"
+            pattern_confidence = min(98.5, 80.0 + (combined_stability * 25))
+
+        elif (projected_home_xg + projected_away_xg) >= 1.8:
+            pattern_match = True
+            selected_pick = "Plus de 1.5 Buts dans le match"
+            pattern_confidence = min(97.5, 78.0 + (combined_stability * 22))
+
+        return {
+            "pattern_found": pattern_match,
+            "selected_pick": selected_pick,
+            "pattern_confidence": round(pattern_confidence, 1),
+            "stability_score": round(combined_stability, 3),
+            "projected_xg": {
+                "home": round(projected_home_xg, 2),
+                "away": round(projected_away_xg, 2)
             }
-        
-        # Pattern 2 : Dominance Extérieur Ultra-Stable
-        elif power_index <= -0.75:
-            return {
-                "matched": True,
-                "pattern_type": "PATTERN_DOMINANCE_EXTERIEUR",
-                "certainty_score": 0.96,
-                "recommended_market": "X2"
-            }
+        }
 
-        # Pattern 3 : Flux Offensif Constant (Over 1.5)
-        elif total_fluidity >= 2.4:
-            return {
-                "matched": True,
-                "pattern_type": "PATTERN_FLUX_OFFENSIF_HIGH",
-                "certainty_score": 0.95,
-                "recommended_market": "OVER_15"
-            }
-
-        # Aucun pattern de sécurité absolue détecté
-        return {"matched": False, "certainty_score": 0.0, "recommended_market": None}
-
-# Instanciation du sous-agent secret
-pattern_agent = TeamPatternAgent()
+pattern_agent = PatternExtractionAgent()
 
 # ==========================================
-# MOTEUR STATISTIQUE & MULTI-AGENTS
+# GENERATEUR D'HISTORIQUE & PIPELINE
 # ==========================================
 
-def poisson_pmf(k, mu):
-    if mu <= 0:
-        return 0.0
-    return (math.pow(mu, k) * math.exp(-mu)) / math.factorial(k)
-
-def dixon_coles_adjustment(h, a, xg_h, xg_a, rho=-0.13):
-    if h == 0 and a == 0:
-        return 1.0 - (xg_h * xg_a * rho)
-    elif h == 0 and a == 1:
-        return 1.0 + (xg_h * rho)
-    elif h == 1 and a == 0:
-        return 1.0 + (xg_a * rho)
-    elif h == 1 and a == 1:
-        return 1.0 - rho
-    return 1.0
-
-def calculate_advanced_probabilities(xg_h, xg_a):
-    p_home, p_draw, p_away = 0.0, 0.0, 0.0
-    p_over15 = 0.0
-
-    for h in range(7):
-        for a in range(7):
-            prob = poisson_pmf(h, xg_h) * poisson_pmf(a, xg_a) * dixon_coles_adjustment(h, a, xg_h, xg_a)
-            
-            if h > a:
-                p_home += prob
-            elif h == a:
-                p_draw += prob
-            else:
-                p_away += prob
-
-            if (h + a) > 1:
-                p_over15 += prob
-
-    total = p_home + p_draw + p_away
-    if total > 0:
-        p_home /= total
-        p_draw /= total
-        p_away /= total
-
-    return {
-        "1": round(p_home * 100, 1),
-        "X": round(p_draw * 100, 1),
-        "2": round(p_away * 100, 1),
-        "1X": round((p_home + p_draw) * 100, 1),
-        "X2": round((p_away + p_draw) * 100, 1),
-        "Over 1.5": round(p_over15 * 100, 1)
-    }
-
-def run_multi_agent_system(match_id, home_team, away_team):
-    # Hash déterministe pour simuler les métriques d'entrée du match
-    seed = (hash(str(match_id) + home_team + away_team) % 1000) / 1000.0
+def generate_simulated_history(match_id, team_name, is_home=True):
+    history = []
+    base_seed = (hash(str(match_id) + team_name) % 1000) / 1000.0
     
-    # Génération des xG et consistance des effectifs
-    xg_h = round(0.9 + seed * 2.0, 2)
-    xg_a = round(0.6 + (1.0 - seed) * 1.6, 2)
-    squad_integrity = round(0.85 + (seed * 0.15), 2)
+    for i in range(5):
+        offset = (i * 0.15)
+        xg_f = round(max(0.6, 1.2 + (base_seed * 1.5) - offset), 2)
+        xg_a = round(max(0.4, 0.8 + ((1.0 - base_seed) * 1.2) - offset), 2)
+        gf = int(xg_f + (0.5 if base_seed > 0.5 else 0))
+        ga = int(xg_a)
 
-    # 1. Calcul des probabilités statistiques
-    probs = calculate_advanced_probabilities(xg_h, xg_a)
+        history.append({
+            "goals_for": gf,
+            "goals_against": ga,
+            "xg_for": xg_f,
+            "xg_against": xg_a
+        })
+    return history
 
-    # 2. INTERVENTION DU SOUS-AGENT IA (Validation par pattern)
-    pattern_res = pattern_agent.extract_and_analyze_pattern(xg_h, xg_a, squad_integrity)
+def run_prediction_pipeline(match_id, home_team, away_team):
+    home_hist = generate_simulated_history(match_id, home_team, is_home=True)
+    away_hist = generate_simulated_history(match_id, away_team, is_home=False)
 
-    # Si le sous-agent ne détecte aucune signature valide à haute certitude, le match est éliminé
-    if not pattern_res["matched"]:
+    evaluation = pattern_agent.evaluate_match_pattern(home_hist, away_hist)
+
+    if not evaluation["pattern_found"]:
         return None
 
-    selected_pick = None
-    confidence = 0.0
-
-    # 3. Association des marchés ordinaires disponibles partout (Double Chance & Over 1.5)
-    if pattern_res["recommended_market"] == "1X" and probs["1X"] >= 88.0:
-        selected_pick = f"1X ({home_team} ou Nul)"
-        confidence = probs["1X"]
-
-    elif pattern_res["recommended_market"] == "X2" and probs["X2"] >= 88.0:
-        selected_pick = f"X2 (Nul ou {away_team})"
-        confidence = probs["X2"]
-
-    elif pattern_res["recommended_market"] == "OVER_15" and probs["Over 1.5"] >= 90.0:
-        selected_pick = "Plus de 1.5 Buts dans le match"
-        confidence = probs["Over 1.5"]
-
-    # Rejet si le seuil de tolérance maximale n'est pas atteint
-    if not selected_pick or confidence < 88.0:
-        return None
+    xg_h = evaluation["projected_xg"]["home"]
+    xg_a = evaluation["projected_xg"]["away"]
 
     demographics = {
-        "dom_domination": int(probs["1"]),
-        "ext_domination": int(probs["2"]),
-        "draw_prob": int(probs["X"]),
-        "attack_pressure": int(min(98, (xg_h + xg_a) * 27)),
-        "defense_stability": int(int(squad_integrity * 100))
+        "dom_domination": int(min(90, (xg_h / (xg_h + xg_a + 0.1)) * 100)),
+        "ext_domination": int(min(90, (xg_a / (xg_h + xg_a + 0.1)) * 100)),
+        "draw_prob": int(max(10, 100 - ((xg_h + xg_a) * 20))),
+        "attack_pressure": int(min(98, (xg_h + xg_a) * 26)),
+        "defense_stability": int(min(98, evaluation["stability_score"] * 100))
     }
 
     return {
         "xg_home": xg_h,
         "xg_away": xg_a,
-        "selected_pick": selected_pick,
-        "confidence": confidence,
-        "is_high_reliability": True,
+        "selected_pick": evaluation["selected_pick"],
+        "confidence": evaluation["pattern_confidence"],
+        "is_high_reliability": evaluation["pattern_confidence"] >= 85.0,
         "demographics": demographics
     }
 
@@ -175,21 +170,21 @@ def home():
 @app.route('/api/scan')
 def scan_matches():
     now_utc = datetime.now(timezone.utc)
-    twelve_hours = now_utc + timedelta(hours=24)
+    target_date = now_utc + timedelta(days=2)
     
     headers = {"X-Auth-Token": API_KEY}
     params = {
         "dateFrom": now_utc.strftime("%Y-%m-%d"),
-        "dateTo": twelve_hours.strftime("%Y-%m-%d")
+        "dateTo": target_date.strftime("%Y-%m-%d")
     }
 
     raw_matches = []
     try:
-        req = requests.get(f"{BASE_URL}/matches", headers=headers, params=params, timeout=8)
+        req = requests.get(f"{BASE_URL}/matches", headers=headers, params=params, timeout=10)
         if req.status_code == 200:
             raw_matches = req.json().get("matches", [])
-    except Exception:
-        pass
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
     grouped = {}
 
@@ -206,14 +201,10 @@ def scan_matches():
         except ValueError:
             continue
 
-        if match_dt <= now_utc:
-            continue
-
         home_name = m.get("homeTeam", {}).get("name", "Domicile")
         away_name = m.get("awayTeam", {}).get("name", "Extérieur")
 
-        # Analyse filtrée par le Sous-Agent IA
-        analysis = run_multi_agent_system(m.get("id", 0), home_name, away_name)
+        analysis = run_prediction_pipeline(m.get("id", 0), home_name, away_name)
         if analysis is None:
             continue
 
@@ -265,7 +256,7 @@ def scan_matches():
 
     return jsonify({
         "status": "success",
-        "time_window": f"{now_utc.strftime('%H:%M')} - {twelve_hours.strftime('%H:%M')} UTC",
+        "time_window": f"{now_utc.strftime('%Y-%m-%d')} au {target_date.strftime('%Y-%m-%d')}",
         "countries": sorted_countries
     })
 

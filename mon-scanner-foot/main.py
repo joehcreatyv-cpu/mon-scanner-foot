@@ -14,9 +14,6 @@ HEADERS = {
     "X-Auth-Token": API_KEY
 }
 
-# Liste des codes des 12 compétitions majeures supportées par le plan gratuit / standard
-MAJOR_LEAGUES_CODES = "CL,PL,PD,SA,BL1,FL1,DED,PPL,ELC,CLI,WC,EC"
-
 # Cache global (30 min) pour respecter le quota de requêtes
 SCAN_CACHE = {
     "timestamp": 0,
@@ -29,6 +26,10 @@ PREDICTION_CACHE = {}
 # ==========================================
 
 def get_native_prediction(fixture_id, home_team_id, away_team_id):
+    """
+    Récupère le Head-to-Head (H2H) via Football-Data.org 
+    et convertit les tendances d'historique en pourcentages ML pour l'Agent 3.
+    """
     now = time.time()
     if fixture_id in PREDICTION_CACHE:
         cached_data, timestamp = PREDICTION_CACHE[fixture_id]
@@ -56,6 +57,7 @@ def get_native_prediction(fixture_id, home_team_id, away_team_id):
             else:
                 p_h, p_d, p_a = 40.0, 30.0, 30.0
 
+            # Normalisation si la somme est nulle
             total_p = p_h + p_d + p_a
             if total_p == 0:
                 p_h, p_d, p_a = 34.0, 33.0, 33.0
@@ -81,6 +83,7 @@ def get_native_prediction(fixture_id, home_team_id, away_team_id):
     except Exception as e:
         print(f"Erreur extraction native prediction fixture {fixture_id}: {e}")
     
+    # Fallback par défaut si l'appel H2H échoue ou dépasse le rate limit
     fallback_data = {
         "predictions": {
             "percent": {"home": "45%", "draw": "30%", "away": "25%"},
@@ -165,7 +168,7 @@ class HighConfidenceDecisionAgent:
             elif "draw or away" in advice.lower():
                 selected_pick = f"X2 (Nul ou {away_name})"
 
-        # Filtre de fiabilité (>= 75%)
+        # Filtre de fiabilité strict (>= 75%)
         if confidence < 75.0:
             return None
 
@@ -214,23 +217,18 @@ def home():
 def scan_matches():
     now = time.time()
     
-    # 1. Cache global de 30 minutes
+    # 1. Mise en cache de 30 minutes
     if SCAN_CACHE["data"] and (now - SCAN_CACHE["timestamp"] < 1800):
         return jsonify(SCAN_CACHE["data"])
 
     try:
         now_utc = datetime.now(timezone.utc)
         today_str = now_utc.strftime("%Y-%m-%d")
+        tomorrow_str = (now_utc + timedelta(days=1)).strftime("%Y-%m-%d")
         
-        # Fenêtre de 7 jours pour capturer les matchs à venir dans les 12 ligues majeures
-        next_week_str = (now_utc + timedelta(days=7)).strftime("%Y-%m-%d")
-        
+        # 2. Récupération des matchs via Football-Data.org
         url = f"{BASE_URL}/matches"
-        params = {
-            "competitions": MAJOR_LEAGUES_CODES,
-            "dateFrom": today_str,
-            "dateTo": next_week_str
-        }
+        params = {"dateFrom": today_str, "dateTo": tomorrow_str}
         
         req = requests.get(url, headers=HEADERS, params=params, timeout=10)
         raw_fixtures = []
@@ -240,7 +238,7 @@ def scan_matches():
         elif req.status_code == 429:
             return jsonify({
                 "status": "rate_limited",
-                "message": "Limite de requêtes atteinte sur l'API.",
+                "message": "Limite d'appels API atteinte pour le moment.",
                 "countries": [],
                 "matches": []
             }), 200
@@ -250,10 +248,11 @@ def scan_matches():
         processed_count = 0
 
         for item in raw_fixtures:
-            if processed_count >= 30:
+            if processed_count >= 25:
                 break
 
             status = item.get("status", "")
+            # Statuts valides : SCHEDULED, TIMED
             if status not in ["SCHEDULED", "TIMED"]:
                 continue
 
@@ -280,6 +279,7 @@ def scan_matches():
             if not fixture_id:
                 continue
 
+            # Traitement par le moteur Decision Agent
             analysis = decision_agent.process_match(
                 fixture_id, 
                 home_name, 
@@ -305,7 +305,7 @@ def scan_matches():
                 "league": league_name,
                 "country": country,
                 "flag": flag,
-                "time": match_dt.strftime("%d/%m %H:%M"),
+                "time": match_dt.strftime("%H:%M"),
                 "analysis": analysis,
                 "prediction": analysis["selected_pick"],
                 "exact_score": analysis["exact_score"],
@@ -355,12 +355,13 @@ def scan_matches():
 
         response_payload = {
             "status": "success",
-            "time_window": "Matchs Sélectionnés Top 12 Ligues (Football-Data ML)",
+            "time_window": "Matchs Sélectionnés High-Confidence (Football-Data ML)",
             "count": len(flat_matches),
             "countries": sorted_countries,
             "matches": flat_matches
         }
 
+        # Sauvegarde dans le cache
         SCAN_CACHE["timestamp"] = now
         SCAN_CACHE["data"] = response_payload
 

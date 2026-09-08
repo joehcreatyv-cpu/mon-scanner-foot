@@ -14,10 +14,10 @@ HEADERS = {
     "X-Auth-Token": API_KEY
 }
 
-# Codes des 12 compétitions majeures couvertes par Football-Data.org
+# Liste des codes des 12 compétitions majeures supportées par le plan gratuit / standard
 MAJOR_LEAGUES_CODES = "CL,PL,PD,SA,BL1,FL1,DED,PPL,ELC,CLI,WC,EC"
 
-# Cache global (30 min) pour limiter le nombre d'appels API
+# Cache global (30 min) pour respecter le quota de requêtes
 SCAN_CACHE = {
     "timestamp": 0,
     "data": None
@@ -25,14 +25,10 @@ SCAN_CACHE = {
 PREDICTION_CACHE = {}
 
 # ==========================================
-# AGENT IA 1 : NATIVE ML & PATTERN extraction (H2H & Forme)
+# AGENT IA 1 : INTERROGATION / ESTIMATION DES PROBABILITÉS NATIVES
 # ==========================================
 
 def get_native_prediction(fixture_id, home_team_id, away_team_id):
-    """
-    Agent 1 : Analyse les confrontations directes (H2H) et génère
-    des probabilités statistiques précises.
-    """
     now = time.time()
     if fixture_id in PREDICTION_CACHE:
         cached_data, timestamp = PREDICTION_CACHE[fixture_id]
@@ -58,7 +54,7 @@ def get_native_prediction(fixture_id, home_team_id, away_team_id):
                 p_a = round((away_wins / total_matches) * 100, 1)
                 p_d = round((draws / total_matches) * 100, 1)
             else:
-                p_h, p_d, p_a = 45.0, 30.0, 25.0
+                p_h, p_d, p_a = 40.0, 30.0, 30.0
 
             total_p = p_h + p_d + p_a
             if total_p == 0:
@@ -72,6 +68,10 @@ def get_native_prediction(fixture_id, home_team_id, away_team_id):
                         "away": f"{p_a}%"
                     },
                     "advice": "Double chance" if (p_h + p_d >= 70 or p_a + p_d >= 70) else ""
+                },
+                "teams": {
+                    "home": {"last_5": {"goals": {"against": {"average": "1.0"}}}},
+                    "away": {"last_5": {"goals": {"against": {"average": "1.0"}}}}
                 }
             }
 
@@ -79,7 +79,7 @@ def get_native_prediction(fixture_id, home_team_id, away_team_id):
             return pred_data
 
     except Exception as e:
-        print(f"Erreur Agent 1 pour la rencontre {fixture_id}: {e}")
+        print(f"Erreur extraction native prediction fixture {fixture_id}: {e}")
     
     fallback_data = {
         "predictions": {
@@ -94,10 +94,6 @@ def get_native_prediction(fixture_id, home_team_id, away_team_id):
 # ==========================================
 
 class AdvancedProbabilityAgent:
-    """
-    Agent 2 : Modélise les opportunités sur les marchés secondaires
-    (Over/Under, BTTS, Corners, Cartons).
-    """
     def compute_secondary_markets(self, percent_home, percent_draw, percent_away):
         p_h = float(percent_home.replace("%", "")) / 100.0 if isinstance(percent_home, str) else percent_home / 100.0
         p_a = float(percent_away.replace("%", "")) / 100.0 if isinstance(percent_away, str) else percent_away / 100.0
@@ -105,9 +101,9 @@ class AdvancedProbabilityAgent:
 
         total_dominance = p_h + p_a
         
-        btts_prob = round(min(92.0, max(35.0, (total_dominance * 48) + (p_d * 25))), 1)
-        over15_prob = round(min(98.0, max(55.0, (total_dominance * 58) + 20)), 1)
-        over25_prob = round(min(94.0, max(25.0, (total_dominance * 50))), 1)
+        btts_prob = round(min(88.0, max(35.0, (total_dominance * 45) + (p_d * 30))), 1)
+        over15_prob = round(min(96.0, max(50.0, (total_dominance * 55) + 20)), 1)
+        over25_prob = round(min(92.0, max(25.0, (total_dominance * 48))), 1)
 
         btts = "Oui" if btts_prob >= 52.0 else "Non"
         goals_pick = "Plus de 2.5 Buts" if over25_prob >= 58.0 else "Plus de 1.5 Buts"
@@ -129,10 +125,6 @@ class AdvancedProbabilityAgent:
 # ==========================================
 
 class HighConfidenceDecisionAgent:
-    """
-    Agent 3 : Calcule la confiance finale et ne retient que les options
-    présentant une très haute fiabilité.
-    """
     def process_match(self, fixture_id, home_name, away_name, home_id=None, away_id=None):
         pred_data = get_native_prediction(fixture_id, home_id, away_id)
         
@@ -151,22 +143,21 @@ class HighConfidenceDecisionAgent:
         p_d = float(p_d_str.replace("%", ""))
         p_a = float(p_a_str.replace("%", ""))
 
-        # Algorithme de sélection à haute fiabilité
         if p_h >= 50.0:
             selected_pick = f"1X ({home_name} ou Nul)" if p_h < 68.0 else f"Victoire {home_name}"
-            confidence = min(98.0, round(p_h + (p_d * 0.6), 1))
+            confidence = min(96.0, round(p_h + (p_d * 0.5), 1))
         elif p_a >= 50.0:
             selected_pick = f"X2 (Nul ou {away_name})" if p_a < 68.0 else f"Victoire {away_name}"
-            confidence = min(98.0, round(p_a + (p_d * 0.6), 1))
+            confidence = min(96.0, round(p_a + (p_d * 0.5), 1))
         elif (p_h + p_d) >= 70.0:
             selected_pick = f"1X ({home_name} ou Nul)"
-            confidence = min(96.0, round(p_h + p_d, 1))
+            confidence = min(94.0, round(p_h + p_d, 1))
         elif (p_a + p_d) >= 70.0:
             selected_pick = f"X2 (Nul ou {away_name})"
-            confidence = min(96.0, round(p_a + p_d, 1))
+            confidence = min(94.0, round(p_a + p_d, 1))
         else:
             selected_pick = "Plus de 1.5 Buts dans le match"
-            confidence = round(max(p_h + p_a, 75.0), 1)
+            confidence = round(max(p_h + p_a, 72.0), 1)
 
         if advice and ("Double chance" in advice or "winner" in advice.lower()):
             if "home or draw" in advice.lower():
@@ -174,7 +165,7 @@ class HighConfidenceDecisionAgent:
             elif "draw or away" in advice.lower():
                 selected_pick = f"X2 (Nul ou {away_name})"
 
-        # Filtre de sélectivité strict pour cibler la haute fiabilité (>= 75%)
+        # Filtre de fiabilité (>= 75%)
         if confidence < 75.0:
             return None
 
@@ -212,7 +203,7 @@ class HighConfidenceDecisionAgent:
 decision_agent = HighConfidenceDecisionAgent()
 
 # ==========================================
-# AGENT IA 4 : AGENT LEADER & ROUTES FLASK
+# AGENT LEADER & ROUTES FLASK
 # ==========================================
 
 @app.route('/')
@@ -221,31 +212,24 @@ def home():
 
 @app.route('/api/scan')
 def scan_matches():
-    """
-    Agent Leader : Gère la fenêtre de 12h à 24h, coordonne les requêtes
-    et formate la réponse structurée pour le front-end.
-    """
     now = time.time()
     
-    # Cache global de 30 minutes
+    # 1. Cache global de 30 minutes
     if SCAN_CACHE["data"] and (now - SCAN_CACHE["timestamp"] < 1800):
         return jsonify(SCAN_CACHE["data"])
 
     try:
         now_utc = datetime.now(timezone.utc)
+        today_str = now_utc.strftime("%Y-%m-%d")
         
-        # Fenêtre temporelle stricte : Matchs prévus entre +12h et +24h
-        time_12h = now_utc + timedelta(hours=12)
-        time_24h = now_utc + timedelta(hours=24)
-        
-        date_from_str = now_utc.strftime("%Y-%m-%d")
-        date_to_str = time_24h.strftime("%Y-%m-%d")
+        # Fenêtre de 7 jours pour capturer les matchs à venir dans les 12 ligues majeures
+        next_week_str = (now_utc + timedelta(days=7)).strftime("%Y-%m-%d")
         
         url = f"{BASE_URL}/matches"
         params = {
             "competitions": MAJOR_LEAGUES_CODES,
-            "dateFrom": date_from_str,
-            "dateTo": date_to_str
+            "dateFrom": today_str,
+            "dateTo": next_week_str
         }
         
         req = requests.get(url, headers=HEADERS, params=params, timeout=10)
@@ -281,8 +265,7 @@ def scan_matches():
             except ValueError:
                 continue
 
-            # Application du filtre strict [12h, 24h]
-            if not (time_12h <= match_dt <= time_24h):
+            if match_dt < now_utc:
                 continue
 
             fixture_id = item.get("id")
@@ -297,7 +280,6 @@ def scan_matches():
             if not fixture_id:
                 continue
 
-            # Transmission à l'Agent 3 (qui sollicite les Agents 1 et 2)
             analysis = decision_agent.process_match(
                 fixture_id, 
                 home_name, 
@@ -323,7 +305,7 @@ def scan_matches():
                 "league": league_name,
                 "country": country,
                 "flag": flag,
-                "time": match_dt.strftime("%H:%M"),
+                "time": match_dt.strftime("%d/%m %H:%M"),
                 "analysis": analysis,
                 "prediction": analysis["selected_pick"],
                 "exact_score": analysis["exact_score"],
@@ -351,7 +333,6 @@ def scan_matches():
             if conf > grouped[country]["max_confidence"]:
                 grouped[country]["max_confidence"] = conf
 
-        # Tri par niveau de fiabilité décroissant
         flat_matches.sort(key=lambda x: x["confidence"], reverse=True)
 
         sorted_countries = []
@@ -374,7 +355,7 @@ def scan_matches():
 
         response_payload = {
             "status": "success",
-            "time_window": "Matchs Sélectionnés [12h - 24h] Top 12 Ligues (High-Confidence)",
+            "time_window": "Matchs Sélectionnés Top 12 Ligues (Football-Data ML)",
             "count": len(flat_matches),
             "countries": sorted_countries,
             "matches": flat_matches

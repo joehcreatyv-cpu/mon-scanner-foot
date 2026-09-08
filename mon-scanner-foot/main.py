@@ -15,7 +15,7 @@ HEADERS = {
     "x-rapidapi-host": "v3.football.api-sports.io"
 }
 
-# Cache global (30 min) pour respecter le quota de requêtes
+# Cache global (30 min) pour préserver le quota
 SCAN_CACHE = {
     "timestamp": 0,
     "data": None
@@ -72,26 +72,26 @@ class PoissonEngineAgent:
         }
 
 # ==========================================
-# AGENT IA 3 : SYNTHÉTISEUR TACTIQUE DE PERFORMANCE
+# AGENT IA 3 : SYNTHÉTISEUR TACTIQUE
 # ==========================================
 
 class PerformanceAnalysisAgent:
     def evaluate_patterns(self, p_h, p_d, p_a, home_name, away_name, advice):
         if p_h >= 52.0:
-            pick = f"1X ({home_name} ou Nul)" if p_h < 70.0 else f"Victoire {home_name}"
+            pick = f"Victoire {home_name}" if p_h >= 68.0 else f"1X ({home_name} ou Nul)"
             base_conf = p_h + (p_d * 0.4)
         elif p_a >= 52.0:
-            pick = f"X2 (Nul ou {away_name})" if p_a < 70.0 else f"Victoire {away_name}"
+            pick = f"Victoire {away_name}" if p_a >= 68.0 else f"X2 (Nul ou {away_name})"
             base_conf = p_a + (p_d * 0.4)
-        elif (p_h + p_d) >= 72.0:
+        elif (p_h + p_d) >= 70.0:
             pick = f"1X ({home_name} ou Nul)"
             base_conf = p_h + p_d
-        elif (p_a + p_d) >= 72.0:
+        elif (p_a + p_d) >= 70.0:
             pick = f"X2 (Nul ou {away_name})"
             base_conf = p_a + p_d
         else:
             pick = "Plus de 1.5 Buts dans le match"
-            base_conf = max(p_h + p_a, 70.0)
+            base_conf = max(p_h + p_a, 65.0)
 
         if advice and ("home or draw" in advice.lower()):
             pick = f"1X ({home_name} ou Nul)"
@@ -104,22 +104,20 @@ class PerformanceAnalysisAgent:
         }
 
 # ==========================================
-# AGENT IA 4 : LEADER META-LEARNER (CHEF D'ORCHESTRE)
+# AGENT IA 4 : LEADER & MÉTA-APPRENANT
 # ==========================================
 
 class MetaLeaderAgent:
     """
-    AGENT LEADER : Apprend, arbitre les résultats des Agents 1, 2 et 3, 
-    et garantit un score de fiabilité nette maximal (proche de 100%).
+    AGENT LEADER : Ne rejette pas les matchs, mais trouve des alternatives
+    cohérentes et affiche la marge réelle de probabilité.
     """
     def __init__(self):
-        # Poids dynamiques d'apprentissage pour chaque agent
         self.agent1_weight = 0.40  # ML Native
-        self.agent2_weight = 0.30  # Poisson & Probabilités
+        self.agent2_weight = 0.30  # Poisson / Probabilités
         self.agent3_weight = 0.30  # Synthétiseur Tactique
 
-    def synthesize_and_filter(self, fixture_id, home_name, away_name):
-        # 1. Collecte des données brutes de l'Agent 1
+    def synthesize_and_arbitrate(self, fixture_id, home_name, away_name):
         pred_data = get_native_prediction(fixture_id)
         if not pred_data:
             return None
@@ -132,18 +130,18 @@ class MetaLeaderAgent:
         p_d = float(percent.get("draw", "33%").replace("%", ""))
         p_a = float(percent.get("away", "33%").replace("%", ""))
 
-        # 2. Exécution parallèle de l'Agent 2 et de l'Agent 3
+        # Exécution des agents 2 et 3
         agent2 = PoissonEngineAgent()
         sec_markets = agent2.compute_probabilities(p_h, p_d, p_a)
 
         agent3 = PerformanceAnalysisAgent()
         agent3_res = agent3.evaluate_patterns(p_h, p_d, p_a, home_name, away_name, advice)
 
-        # 3. Calcul de Convergence de l'Agent 4 (Score Meta-Fiabilité)
         conf_agent1 = max(p_h, p_a) + (p_d * 0.3)
-        conf_agent2 = sec_markets["over15_prob"] if "1.5 Buts" in agent3_res["pick"] else max(p_h, p_a)
+        conf_agent2 = sec_markets["over15_prob"] if "1.5" in agent3_res["pick"] else max(p_h, p_a)
         conf_agent3 = agent3_res["confidence"]
 
+        # Score pondéré initial
         meta_confidence = round(
             (conf_agent1 * self.agent1_weight) +
             (conf_agent2 * self.agent2_weight) +
@@ -151,15 +149,36 @@ class MetaLeaderAgent:
             1
         )
 
-        # Boost de précision pour les pronostics en Double Chance à forte probabilité
-        if "1X" in agent3_res["pick"] or "X2" in agent3_res["pick"]:
-            meta_confidence = min(98.5, meta_confidence + 6.5)
+        # 1. CONSENSUS ET ARBITRAGE ALTERNATIF
+        final_pick = agent3_res["pick"]
+        alternative_pick = None
 
-        # FILTRE DE FIABILITÉ ULTIME : Seuls les matchs à fiabilité nette ≥ 82% sont retenus
-        if meta_confidence < 82.0:
-            return None
+        # Si désaccord ou incertitude importante (Confiance brute < 78%)
+        if meta_confidence < 78.0:
+            # Recherche d'une alternative ultra-cohérente
+            if (p_h + p_d) >= 65.0:
+                final_pick = f"1X ({home_name} ou Nul)"
+                alternative_pick = "Plus de 1.5 Buts dans le match"
+                meta_confidence = round(p_h + p_d, 1)
+            elif (p_a + p_d) >= 65.0:
+                final_pick = f"X2 (Nul ou {away_name})"
+                alternative_pick = "Plus de 1.5 Buts dans le match"
+                meta_confidence = round(p_a + p_d, 1)
+            else:
+                final_pick = "Plus de 1.5 Buts dans le match"
+                alternative_pick = f"Moins de 3.5 Buts (Marge Sécurité)"
+                meta_confidence = round(sec_markets["over15_prob"], 1)
+        else:
+            # En cas de bonne confiance, définir une alternative secondaire
+            if "Victoire" in final_pick:
+                alternative_pick = f"Double Chance (Sûreté {final_pick.split(' ')[1]})"
+            else:
+                alternative_pick = sec_markets["goals_pick"]
 
-        # Estimation du Score Exact par Consensus
+        # Indexation de la marge de probabilité
+        probability_margin = f"{meta_confidence}%"
+
+        # Estimation du Score Exact
         score_h = 2 if p_h > 55 else (1 if p_h >= 35 else 0)
         score_a = 2 if p_a > 55 else (1 if p_a >= 35 else 0)
 
@@ -174,7 +193,9 @@ class MetaLeaderAgent:
         return {
             "xg_home": round(p_h / 30.0, 2),
             "xg_away": round(p_a / 30.0, 2),
-            "selected_pick": agent3_res["pick"],
+            "selected_pick": final_pick,
+            "alternative_pick": alternative_pick,
+            "probability_margin": probability_margin,
             "exact_score": f"{score_h} - {score_a}",
             "btts": sec_markets["btts"],
             "goals_pick": sec_markets["goals_pick"],
@@ -182,12 +203,11 @@ class MetaLeaderAgent:
             "cards_pick": sec_markets["cards_pick"],
             "confidence": meta_confidence,
             "reliability_score": meta_confidence,
-            "is_priority": meta_confidence >= 88.0,
+            "is_priority": meta_confidence >= 82.0,
             "metrics": metrics,
             "demographics": metrics
         }
 
-# Initialisation de l'Agent Leader
 leader_agent = MetaLeaderAgent()
 
 # ==========================================
@@ -261,8 +281,8 @@ def scan_matches():
             if not fixture_id:
                 continue
 
-            # Passage du match sous le contrôle de l'AGENT 4 LEADER
-            analysis = leader_agent.synthesize_and_filter(fixture_id, home_name, away_name)
+            # Passage du match par l'Agent 4 Leader
+            analysis = leader_agent.synthesize_and_arbitrate(fixture_id, home_name, away_name)
             if analysis is None:
                 continue
 
@@ -284,6 +304,8 @@ def scan_matches():
                 "time": match_dt.strftime("%H:%M"),
                 "analysis": analysis,
                 "prediction": analysis["selected_pick"],
+                "alternative_pick": analysis["alternative_pick"],
+                "probability_margin": analysis["probability_margin"],
                 "exact_score": analysis["exact_score"],
                 "btts": analysis["btts"],
                 "goals_pick": analysis["goals_pick"],
@@ -331,7 +353,7 @@ def scan_matches():
 
         response_payload = {
             "status": "success",
-            "time_window": "Analyse Agent 4 Leader - Ultra Fiabilité",
+            "time_window": "Analyse Agent Leader - Multi-Options & Marges",
             "count": len(flat_matches),
             "countries": sorted_countries,
             "matches": flat_matches

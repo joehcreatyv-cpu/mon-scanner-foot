@@ -8,8 +8,8 @@ from flask import Flask, render_template, jsonify
 app = Flask(__name__)
 
 # Clé API-Football
-API_KEY = os.environ.get("API_FOOTBALL_KEY", "f2d225e375372698ab103160f0363e59")
-BASE_URL = "https://v3.football.api-sports.io"
+API_KEY = os.environ.get("FOOTBALL_DATA_KEY", "6a7f0cc1d0594fe48481f70b3dc9cfe7")
+BASE_URL = "https://api.football-data.org/v4"
 HEADERS = {
     "x-apisports-key": API_KEY,
     "x-rapidapi-host": "v3.football.api-sports.io"

@@ -3,17 +3,10 @@ import math
 import requests
 import time
 from datetime import datetime, timedelta, timezone
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from flask import Flask, render_template, jsonify
 
 app = Flask(__name__)
-
-# ==========================================
-# ROUTE RACINE (Correction de l'erreur 404)
-# ==========================================
-@app.route('/')
-def home():
-    """Affiche la page d'accueil principale index.html."""
-    return render_template('index.html')
 
 API_KEY = os.environ.get("FOOTBALL_DATA_KEY", "6a7f0cc1d0594fe48481f70b3dc9cfe7")
 BASE_URL = "https://api.football-data.org/v4"
@@ -40,17 +33,28 @@ def get_league_standings(competition_id):
 
     try:
         url = f"{BASE_URL}/competitions/{competition_id}/standings"
-        req = requests.get(url, headers=HEADERS, timeout=8)
+        req = requests.get(url, headers=HEADERS, timeout=5)
         if req.status_code == 200:
             standings_data = req.json().get("standings", [])
             STANDINGS_CACHE[competition_id] = (standings_data, now)
             return standings_data
         elif req.status_code == 429:
-            time.sleep(1)  # Pause de sécurité
+            time.sleep(1)
     except Exception as e:
         print(f"Erreur extraction classement (Compétition {competition_id}): {e}")
 
     return []
+
+def preload_all_standings(competitions_str):
+    """Pré-charge les classements des ligues en parallèle pour éliminer le goulot d'étranglement"""
+    comp_ids = [c.strip() for c in competitions_str.split(",") if c.strip()]
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        futures = {executor.submit(get_league_standings, comp_id): comp_id for comp_id in comp_ids}
+        for future in as_completed(futures):
+            try:
+                future.result()
+            except Exception as e:
+                print(f"Erreur lors du pré-chargement pour la compétition {futures[future]}: {e}")
 
 # ==========================================
 # SYSTÈME MULTI-AGENTS IA STRICT
@@ -227,7 +231,7 @@ def run_prediction_pipeline(home_id, away_id, competition_id, home_name, away_na
             elif t_id == away_id:
                 away_stats = entry
 
-    # Si les statistiques de classement manquent (ex: début de saison), ne pas inventer
+    # Si les statistiques de classement manquent, ne pas inventer
     if not home_stats or not away_stats:
         return None
 
@@ -262,8 +266,12 @@ def run_prediction_pipeline(home_id, away_id, competition_id, home_name, away_na
     }
 
 # ==========================================
-# ROUTE PRINCIPALE DE SCAN
+# ROUTES FLASK
 # ==========================================
+
+@app.route('/')
+def index():
+    return render_template('index.html')
 
 @app.route('/api/scan')
 def scan_matches():
@@ -274,6 +282,9 @@ def scan_matches():
         return jsonify(MATCHES_CACHE["data"])
 
     try:
+        # Pré-chargement des classements pour éviter les ralentissements pendant le scan
+        preload_all_standings(MAJOR_LEAGUES)
+
         now_utc = datetime.now(timezone.utc)
         date_from = now_utc.strftime("%Y-%m-%d")
         date_to = (now_utc + timedelta(days=3)).strftime("%Y-%m-%d")
@@ -316,7 +327,9 @@ def scan_matches():
             away_team = m.get("awayTeam", {})
             home_id = home_team.get("id")
             away_id = away_team.get("id")
-            comp_id = m.get("competition", {}).get("id")
+
+            # Récupération sécurisée du comp_id au niveau global ou dans la clé match
+            comp_id = m.get("competition", {}).get("id") or m.get("competition", {}).get("code")
 
             if not home_id or not away_id or not comp_id:
                 continue
